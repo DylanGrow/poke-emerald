@@ -38,6 +38,11 @@ export interface BattleOpponent {
   bodyType: number;
   status?: 'SLP' | 'PAR' | 'PSN' | 'BRN' | null;
   shiny?: boolean;
+  attack: number;
+  defense: number;
+  spAttack: number;
+  spDefense: number;
+  speed: number;
 }
 
 export interface BattleState {
@@ -182,15 +187,46 @@ function toBattleOpponent(data: PokemonData, level: number, forcedShiny?: boolea
     pokemonId: data.id,
     level,
     currentHp: stats.maxHp,
-    maxHp: stats.maxHp,
     types: data.types,
     moves: moves.length > 0 ? moves : [{ name: 'Tackle', type: 'Normal', power: 40, pp: 35, accuracy: 100, level: 1 }],
     color: data.color,
     secondaryColor: data.secondaryColor,
     shapeSeed: data.shapeSeed,
     bodyType: data.bodyType,
-    shiny: isShiny
+    shiny: isShiny,
+    ...stats
   };
+}
+
+// AI Score-based opponent move selection
+function selectOpponentMove(opponent: BattleOpponent, player: PlayerPokemon, isWild: boolean): Move {
+  if (opponent.moves.length <= 1) {
+    return opponent.moves[0];
+  }
+  
+  if (isWild) {
+    return opponent.moves[Math.floor(Math.random() * opponent.moves.length)];
+  }
+  
+  const scores = opponent.moves.map(m => {
+    let score = m.power || 20;
+    const pTypes = getPokemonById(player.pokemonId).types;
+    let mult = 1.0;
+    pTypes.forEach(t => {
+      if (TYPE_EFFECTIVENESS[m.type] && TYPE_EFFECTIVENESS[m.type][t] !== undefined) {
+        mult *= TYPE_EFFECTIVENESS[m.type][t];
+      }
+    });
+    
+    if (mult > 1) score *= 2.5;       // Heavily favor super-effective
+    else if (mult === 0) score = 0;   // Avoid immunities
+    else if (mult < 1) score *= 0.4;  // Avoid resistant targets
+    
+    return score + Math.random() * 12; // Noise to prevent total predictability
+  });
+  
+  const bestIndex = scores.indexOf(Math.max(...scores));
+  return opponent.moves[bestIndex];
 }
 
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -495,7 +531,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
       
-      const oMove = oActive.moves[Math.floor(Math.random() * oActive.moves.length)];
+      const oMove = selectOpponentMove(oActive, pActive, prev.type === 'wild');
       
       // Burn half physical attack check
       const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(oMove.type);
@@ -580,9 +616,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const pMove = pActive.moves[playerMoveIndex];
     
-    // Determine Turn Order based on speed, halved by paralysis
     const pSpeed = pActive.speed * (pActive.status === 'PAR' ? 0.5 : 1.0);
-    const oSpeed = (oActive.level * 1.5) * (oActive.status === 'PAR' ? 0.5 : 1.0);
+    const oSpeed = oActive.speed * (oActive.status === 'PAR' ? 0.5 : 1.0);
     const playerFirst = pSpeed >= oSpeed;
     
     setBattle(prev => {
@@ -649,7 +684,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
-        const oMove = oActive.moves[Math.floor(Math.random() * oActive.moves.length)];
+        const oMove = selectOpponentMove(oActive, pActive, prev.type === 'wild');
         const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(oMove.type);
         let oDmg = calculateOpponentDamage(oActive, pActive, oMove);
         if (isPhysical && oStatus === 'BRN') {
@@ -754,7 +789,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const calculateDamage = (attacker: PlayerPokemon, defender: BattleOpponent, move: Move) => {
     const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(move.type);
     const A = isPhysical ? attacker.attack : attacker.spAttack;
-    const D = isPhysical ? 50 + defender.level * 1.3 : 50 + defender.level * 1.3;
+    const D = isPhysical ? defender.defense : defender.spDefense;
     
     let modifier = 1.0;
     let log = '';
@@ -793,7 +828,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const calculateOpponentDamage = (attacker: BattleOpponent, defender: PlayerPokemon, move: Move) => {
     const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(move.type);
-    const A = isPhysical ? 45 + attacker.level * 1.5 : 45 + attacker.level * 1.5;
+    const A = isPhysical ? attacker.attack : attacker.spAttack;
     const D = isPhysical ? defender.defense : defender.spDefense;
     
     let modifier = 1.0;
@@ -871,71 +906,77 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setMoney(m => m + prizeMoney);
 
-      // Award XP to player Active Pokemon
-      const updatedTeam = [...team];
-      const activePoke = updatedTeam[currentBattle.playerActiveIndex];
-      const newXp = activePoke.xp + xpEarned;
-      let level = activePoke.level;
-      let xpToNext = activePoke.xpToNext;
-      let leveledUp = false;
+      // Award XP to all healthy team members (100% to active, 45% Exp. Share to others)
+      const updatedTeam = team.map((poke, index) => {
+        if (poke.currentHp <= 0) return poke; // Fainted Pokemon do not gain XP
 
-      // Handle leveling up
-      while (newXp >= xpToNext && level < 100) {
-        level++;
-        xpToNext = Math.floor(Math.pow(level + 1, 3) * 0.8);
-        leveledUp = true;
-      }
-
-      const baseStats = getPokemonById(activePoke.pokemonId).baseStats;
-      const stats = calculateStats(baseStats, level);
-
-      // Teach new moves upon level up if available
-      let currentMoves = [...activePoke.moves];
-      if (leveledUp) {
-        sound.playLevelUp();
-        const data = getPokemonById(activePoke.pokemonId);
-        const unlockedMove = data.moves.find(m => m.level === level);
-        if (unlockedMove && !currentMoves.some(cm => cm.name === unlockedMove.name)) {
-          if (currentMoves.length < 4) {
-            currentMoves.push(unlockedMove);
-          } else {
-            // Instead of auto-replacing, queue a pending move learn modal
-            setPendingMoveLearn({
-              pokemonId: activePoke.id,
-              move: unlockedMove
-            });
+        const isActive = index === currentBattle.playerActiveIndex;
+        const xpShare = isActive ? xpEarned : Math.floor(xpEarned * 0.45);
+        
+        let level = poke.level;
+        let xp = poke.xp + xpShare;
+        let xpToNext = poke.xpToNext;
+        let leveledUp = false;
+        
+        while (xp >= xpToNext && level < 100) {
+          level++;
+          xpToNext = Math.floor(Math.pow(level + 1, 3) * 0.8);
+          leveledUp = true;
+        }
+        
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, level);
+        
+        let currentMoves = [...poke.moves];
+        if (leveledUp) {
+          if (isActive) sound.playLevelUp();
+          const data = getPokemonById(poke.pokemonId);
+          // Check for unlocked moves up to the new level
+          const newMoves = data.moves.filter(m => m.level <= level && m.level > poke.level);
+          newMoves.forEach(unlockedMove => {
+            if (!currentMoves.some(cm => cm.name === unlockedMove.name)) {
+              if (currentMoves.length < 4) {
+                currentMoves.push(unlockedMove);
+              } else if (isActive) {
+                // Queue a pending move learn modal only for the active battling Pokemon
+                setPendingMoveLearn({
+                  pokemonId: poke.id,
+                  move: unlockedMove
+                });
+              }
+            }
+          });
+        }
+        
+        // Handle evolutions
+        let finalPokemonId = poke.pokemonId;
+        let finalNickname = poke.nickname;
+        const pokeData = getPokemonById(poke.pokemonId);
+        if (pokeData.evolutionId && pokeData.evolutionLevel && level >= pokeData.evolutionLevel) {
+          finalPokemonId = pokeData.evolutionId;
+          const evolvedData = getPokemonById(finalPokemonId);
+          if (poke.nickname === pokeData.name) {
+            finalNickname = evolvedData.name;
           }
         }
-      }
-
-      // Handle evolutions
-      let finalPokemonId = activePoke.pokemonId;
-      let finalNickname = activePoke.nickname;
-      const pokeData = getPokemonById(activePoke.pokemonId);
-      if (pokeData.evolutionId && pokeData.evolutionLevel && level >= pokeData.evolutionLevel) {
-        finalPokemonId = pokeData.evolutionId;
-        const evolvedData = getPokemonById(finalPokemonId);
-        if (activePoke.nickname === pokeData.name) {
-          finalNickname = evolvedData.name;
-        }
-      }
-
-      updatedTeam[currentBattle.playerActiveIndex] = {
-        ...activePoke,
-        pokemonId: finalPokemonId,
-        nickname: finalNickname,
-        level,
-        xp: newXp,
-        xpToNext,
-        maxHp: stats.maxHp,
-        currentHp: leveledUp ? stats.maxHp : Math.min(stats.maxHp, activePoke.currentHp),
-        attack: stats.attack,
-        defense: stats.defense,
-        spAttack: stats.spAttack,
-        spDefense: stats.spDefense,
-        speed: stats.speed,
-        moves: currentMoves
-      };
+        
+        return {
+          ...poke,
+          pokemonId: finalPokemonId,
+          nickname: finalNickname,
+          level,
+          xp,
+          xpToNext,
+          maxHp: stats.maxHp,
+          currentHp: leveledUp ? stats.maxHp : Math.min(stats.maxHp, poke.currentHp),
+          attack: stats.attack,
+          defense: stats.defense,
+          spAttack: stats.spAttack,
+          spDefense: stats.spDefense,
+          speed: stats.speed,
+          moves: currentMoves
+        };
+      });
       setTeam(updatedTeam);
 
       // Record Badge or Elite win
@@ -980,7 +1021,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Play shake sounds in UI loop (controlled by UI component but let's calculate rate here)
       const hpRatio = oActive.currentHp / oActive.maxHp;
-      const catchRate = (1 - hpRatio) * item.value;
+      let catchRate = (0.15 + (1 - hpRatio) * 0.75) * item.value;
+      if (oActive.status === 'SLP') {
+        catchRate *= 2.0;
+      } else if (oActive.status && oActive.status !== null) {
+        catchRate *= 1.5;
+      }
       const success = item.name === 'Master Ball' || Math.random() < catchRate;
 
       setTimeout(() => {
