@@ -519,16 +519,21 @@ export const BattleScreen: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {playerActive.moves.map((move, index) => {
                 const eff = getMoveEffectiveness(move.type, oppActive.types);
+                const currentPp = move.currentPp !== undefined ? move.currentPp : move.pp;
+                const isOutOfPp = currentPp <= 0;
                 
                 return (
                   <button
                     key={index}
+                    disabled={isOutOfPp}
                     onClick={() => {
                       executeTurn(index);
                       setActiveTab('main');
                     }}
                     className={`py-3 px-2 rounded-xl border shadow-md active:scale-95 transition-all flex flex-col items-center justify-center gap-1 text-center ${
-                      focusedMove === index 
+                      isOutOfPp
+                        ? 'border-rose-950/20 bg-slate-950/15 opacity-40 cursor-not-allowed shadow-none'
+                        : focusedMove === index 
                         ? 'border-emerald-400 bg-slate-900 ring-2 ring-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
                         : 'border-slate-850 hover:border-emerald-500/40 hover:bg-slate-900/60'
                     }`}
@@ -539,17 +544,24 @@ export const BattleScreen: React.FC = () => {
                     </span>
                     
                     {/* QoL Type Advantage Indicator */}
-                    {eff > 1 ? (
+                    {isOutOfPp ? (
+                      <span className="text-[8px] font-mono font-black text-rose-500 bg-rose-950/40 px-1.5 py-0.5 rounded border border-rose-500/20 uppercase tracking-widest animate-pulse">OUT OF PP</span>
+                    ) : eff > 1 ? (
                       <span className="text-[8px] font-mono font-black text-emerald-400 bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/20 uppercase tracking-widest">x{eff} EFFECTIVE</span>
                     ) : eff < 1 && eff > 0 ? (
                       <span className="text-[8px] font-mono font-bold text-rose-450 bg-rose-950/20 px-1.5 py-0.5 rounded border border-rose-500/20 uppercase tracking-widest">x{eff} WEAK</span>
                     ) : eff === 0 ? (
                       <span className="text-[8px] font-mono font-bold text-slate-500 bg-slate-950/20 px-1.5 py-0.5 rounded border border-slate-850 uppercase tracking-widest">NO EFFECT</span>
                     ) : (
-                      <span className="text-[8px] font-mono text-slate-500">x{eff} NORMAL</span>
+                      <span className="text-[8px] font-mono text-slate-500 font-medium">x{eff} NORMAL</span>
                     )}
 
-                    <span className="text-[10px] font-mono text-gray-500 mt-0.5">PWR: {move.power}</span>
+                    <div className="flex items-center gap-2 mt-0.5 text-[8.5px] font-mono">
+                      <span className="text-slate-500">PWR: {move.power}</span>
+                      <span className={currentPp <= 3 ? 'text-rose-400 font-bold' : currentPp <= 6 ? 'text-yellow-400' : 'text-slate-400'}>
+                        PP: {currentPp}/{move.pp}
+                      </span>
+                    </div>
                   </button>
                 );
               })}

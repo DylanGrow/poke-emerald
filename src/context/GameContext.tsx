@@ -157,7 +157,7 @@ export function createPlayerPokemon(pokemonId: number, level: number, forcedShin
   
   // Assign available moves up to this level (max 4 moves, default to latest unlocked)
   const availableMoves = data.moves.filter(m => m.level <= level);
-  const moves = availableMoves.slice(-4);
+  const moves = availableMoves.slice(-4).map(m => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }));
   
   const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < 0.0067; // 1 in 150 shiny rate (0.67%)
   
@@ -179,7 +179,7 @@ export function createPlayerPokemon(pokemonId: number, level: number, forcedShin
 function toBattleOpponent(data: PokemonData, level: number, forcedShiny?: boolean): BattleOpponent {
   const stats = calculateStats(data.baseStats, level);
   const availableMoves = data.moves.filter(m => m.level <= level);
-  const moves = availableMoves.slice(-4);
+  const moves = availableMoves.slice(-4).map(m => ({ ...m, currentPp: m.pp }));
   const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < 0.0067; // 1 in 150 shiny rate (0.67%)
 
   return {
@@ -188,7 +188,7 @@ function toBattleOpponent(data: PokemonData, level: number, forcedShiny?: boolea
     level,
     currentHp: stats.maxHp,
     types: data.types,
-    moves: moves.length > 0 ? moves : [{ name: 'Tackle', type: 'Normal', power: 40, pp: 35, accuracy: 100, level: 1 }],
+    moves: moves.length > 0 ? moves : [{ name: 'Tackle', type: 'Normal', power: 40, pp: 35, accuracy: 100, level: 1, currentPp: 35 }],
     color: data.color,
     secondaryColor: data.secondaryColor,
     shapeSeed: data.shapeSeed,
@@ -260,8 +260,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        setTeam(data.team || []);
-        setPcBox(data.pcBox || []);
+        const loadedTeam = (data.team || []).map((p: any) => ({
+          ...p,
+          moves: p.moves.map((m: any) => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }))
+        }));
+        const loadedPc = (data.pcBox || []).map((p: any) => ({
+          ...p,
+          moves: p.moves.map((m: any) => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }))
+        }));
+        setTeam(loadedTeam);
+        setPcBox(loadedPc);
         setPokedexCaught(data.pokedexCaught || []);
         setBadgesDefeated(data.badgesDefeated || []);
         setEliteDefeatedCount(data.eliteDefeatedCount || 0);
@@ -657,6 +665,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
         
+        // Accuracy Roll Check
+        const accuracyRoll = Math.random() * 100;
+        if (accuracyRoll > pMove.accuracy) {
+          logs.push(`${pActive.nickname} used ${pMove.name}! But the attack missed!`);
+          return;
+        }
+        
         const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(pMove.type);
         let pDmg = calculateDamage(pActive, oActive, pMove);
         if (isPhysical && pStatus === 'BRN') {
@@ -697,6 +712,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         const oMove = selectOpponentMove(oActive, pActive, prev.type === 'wild');
+
+        // Accuracy Roll Check
+        const accuracyRoll = Math.random() * 100;
+        if (accuracyRoll > oMove.accuracy) {
+          logs.push(`${oActive.name} used ${oMove.name}! But the attack missed!`);
+          return;
+        }
+
         const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(oMove.type);
         let oDmg = calculateOpponentDamage(oActive, pActive, oMove);
         if (isPhysical && oStatus === 'BRN') {
@@ -755,10 +778,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Save state adjustments
       const updatedTeam = [...team];
+      const updatedMoves = pActive.moves.map((m, idx) => 
+        idx === playerMoveIndex 
+          ? { ...m, currentPp: Math.max(0, (m.currentPp !== undefined ? m.currentPp - 1 : m.pp - 1)) } 
+          : m
+      );
       updatedTeam[prev.playerActiveIndex] = {
         ...pActive,
         currentHp: plHp,
-        status: pStatus
+        status: pStatus,
+        moves: updatedMoves
       };
       setTeam(updatedTeam);
 
@@ -1225,7 +1254,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTeam(prev => prev.map(p => ({
       ...p,
       currentHp: p.maxHp,
-      status: null
+      status: null,
+      moves: p.moves.map(m => ({ ...m, currentPp: m.pp }))
     })));
   };
 
@@ -1279,8 +1309,17 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (calculatedSig === signature) {
         const decodedState = JSON.parse(payload);
         
-        setTeam(decodedState.team || []);
-        setPcBox(decodedState.pcBox || []);
+        const loadedTeam = (decodedState.team || []).map((p: any) => ({
+          ...p,
+          moves: p.moves.map((m: any) => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }))
+        }));
+        const loadedPc = (decodedState.pcBox || []).map((p: any) => ({
+          ...p,
+          moves: p.moves.map((m: any) => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }))
+        }));
+
+        setTeam(loadedTeam);
+        setPcBox(loadedPc);
         setPokedexCaught(decodedState.pokedexCaught || []);
         setBadgesDefeated(decodedState.badgesDefeated || []);
         setEliteDefeatedCount(decodedState.eliteDefeatedCount || 0);

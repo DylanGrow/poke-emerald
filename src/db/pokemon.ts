@@ -5,6 +5,7 @@ export interface Move {
   accuracy: number;
   pp: number;
   level: number;
+  currentPp?: number;
 }
 
 export interface BaseStats {
