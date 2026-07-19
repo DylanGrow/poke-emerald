@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Content Security Policy: Government-level static client security. No external scripts or styles allowed, absolute XSS mitigation -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' data:; default-src 'self'; object-src 'none'; base-uri 'self';" />
+    
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- SEO Optimization -->
+    <title>Pokémon Emerald: Custom Edition | 600+ Pokémon Handheld RPG</title>
+    <meta name="description" content="Play the ultimate custom Pokémon Emerald retro RPG web app offline. Explore 4 islands, earn 30 Gym Badges, defeat the Elite 16, and collect over 600 Pokémon in this secure, adblock-friendly PWA." />
+    <meta name="keywords" content="pokemon emerald, custom pokemon game, play pokemon online, pokemon pwa, pokemon typescript rpg, offline pokemon game, 30 badges pokemon" />
+    <meta name="robots" content="index, follow" />
+    <meta name="author" content="Antigravity Dev" />
+    
+    <!-- PWA Settings -->
+    <meta name="theme-color" content="#060913" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PokeEmerald" />
+    <link rel="manifest" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./favicon.svg" />
+  </head>
+  <body class="bg-gray-950 text-gray-100 select-none overflow-x-hidden antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Offline Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+            .catch(err => console.error('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

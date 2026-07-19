@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Outer glowing green ring -->
+  <circle cx="50" cy="50" r="48" fill="#060913" stroke="#10b981" stroke-width="4" />
+  
+  <!-- Pokéball Top Half (Emerald Green) -->
+  <path d="M 8.5 50 A 41.5 41.5 0 0 1 91.5 50 Z" fill="#10b981" />
+  
+  <!-- Pokéball Bottom Half (Dark Slate Panel) -->
+  <path d="M 91.5 50 A 41.5 41.5 0 0 1 8.5 50 Z" fill="#1e293b" />
+  
+  <!-- Center dividing line -->
+  <line x1="8" y1="50" x2="92" y2="50" stroke="#060913" stroke-width="6" />
+  
+  <!-- Outer Center Button (Dark Gray border) -->
+  <circle cx="50" cy="50" r="14" fill="#060913" />
+  
+  <!-- Inner Center Button (White) -->
+  <circle cx="50" cy="50" r="9" fill="#ffffff" />
+  
+  <!-- Core glowing button point (Neon Emerald) -->
+  <circle cx="50" cy="50" r="4" fill="#34d399" />
+</svg>

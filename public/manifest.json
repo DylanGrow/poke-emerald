@@ -1,0 +1,19 @@
+{
+  "short_name": "PokeEmerald",
+  "name": "Pokémon Emerald: Custom Edition",
+  "description": "Custom Pokémon Emerald PWA RPG featuring 600+ Pokémon, 30 Badges, and 4 Islands.",
+  "icons": [
+    {
+      "src": "./favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "background_color": "#060913",
+  "theme_color": "#060913",
+  "display": "standalone",
+  "orientation": "landscape",
+  "prefer_related_applications": false
+}
