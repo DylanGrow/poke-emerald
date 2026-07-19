@@ -353,11 +353,23 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const startWildBattle = (island: number, terrain?: string) => {
     sound.playEncounter();
     // Wild levels scale per island: Is1 (3-12), Is2 (12-25), Is3 (25-45), Is4 (45-75)
-    let minLvl = 3;
-    let maxLvl = 10;
-    if (island === 2) { minLvl = 12; maxLvl = 22; }
-    else if (island === 3) { minLvl = 22; maxLvl = 45; }
-    else if (island === 4) { minLvl = 45; maxLvl = 70; }
+    let minLvl = 2;
+    let maxLvl = 5;
+    if (island === 1) {
+      if (terrain === 'cave' || terrain === 'shore') {
+        minLvl = 4;
+        maxLvl = 8;
+      }
+    } else if (island === 2) {
+      minLvl = 10;
+      maxLvl = 18;
+    } else if (island === 3) {
+      minLvl = 20;
+      maxLvl = 33;
+    } else if (island === 4) {
+      minLvl = 35;
+      maxLvl = 58;
+    }
 
     const lvl = Math.floor(minLvl + Math.random() * (maxLvl - minLvl));
     

@@ -184,8 +184,11 @@ export function generatePokedex(): PokemonData[] {
     }
 
     // 3. Stats Generation based on evolution stage (every 3 is an evolution line)
-    const stage = (i - 1) % 3; // 0: base, 1: mid, 2: final
-    const statMultiplier = stage === 0 ? 0.8 : stage === 1 ? 1.0 : 1.25;
+    let stage = (i - 1) % 3; // 0: base, 1: mid, 2: final
+    if (i === 252 || i === 255 || i === 258) stage = 0;
+    else if (i === 253 || i === 256 || i === 259) stage = 1;
+    else if (i === 254 || i === 257 || i === 260) stage = 2;
+    const statMultiplier = stage === 0 ? 0.85 : stage === 1 ? 1.05 : 1.3;
     
     const hp = Math.floor((45 + rand() * 80) * statMultiplier);
     const attack = Math.floor((45 + rand() * 85) * statMultiplier);
