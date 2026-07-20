@@ -8,6 +8,7 @@ import { Pokedex } from './components/Pokedex';
 import { SaveManager } from './components/SaveManager';
 import { PartyManager } from './components/PartyManager';
 import { PCBox } from './components/PCBox';
+import { TrainerCard } from './components/TrainerCard';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
 import { Volume2, VolumeX, Shield, Trophy, Sword } from 'lucide-react';
@@ -27,7 +28,7 @@ const Dashboard: React.FC = () => {
     selectStarter
   } = useGame();
 
-  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'save'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save'>('map');
 
   // Start procedural BGM on first user interaction if not muted
   useEffect(() => {
@@ -233,6 +234,16 @@ const Dashboard: React.FC = () => {
                   Pokédex
                 </button>
                 <button
+                  onClick={() => { sound.playSelect(); setActiveTab('card'); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all ${
+                    activeTab === 'card' 
+                      ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400' 
+                      : 'hover:bg-slate-900 text-gray-400'
+                  }`}
+                >
+                  Trainer Card
+                </button>
+                <button
                   onClick={() => { sound.playSelect(); setActiveTab('save'); }}
                   className={`px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all ${
                     activeTab === 'save' 
@@ -251,6 +262,7 @@ const Dashboard: React.FC = () => {
               {activeTab === 'party' && <PartyManager />}
               {activeTab === 'pc' && <PCBox />}
               {activeTab === 'pokedex' && <Pokedex />}
+              {activeTab === 'card' && <TrainerCard />}
               {activeTab === 'save' && <SaveManager />}
             </div>
           </>

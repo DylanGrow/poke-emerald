@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame, ITEMS } from '../context/GameContext';
 import { GYMS } from '../db/gyms';
+import { ROUTE_TRAINERS } from '../db/trainers';
 import { useGamepad } from '../hooks/useGamepad';
 import { sound } from '../utils/sound';
 import { Shield, Sparkles, MapPin, ShoppingCart, Heart, Activity, Swords, Navigation } from 'lucide-react';
@@ -18,11 +19,13 @@ export const MapScreen: React.FC = () => {
     activeIsland,
     currentLocation,
     badgesDefeated,
+    beatenTrainers,
     eliteDefeatedCount,
     money,
     healTeam,
     purchaseItem,
     startWildBattle,
+    startTrainerBattle,
     startGymBattle,
     startEliteBattle,
     travelToIsland,
@@ -366,7 +369,20 @@ export const MapScreen: React.FC = () => {
                           </svg>
                         </div>
                       ) : (
-                        getNodeIcon(node.type)
+                        <div className="relative flex items-center justify-center">
+                          {getNodeIcon(node.type)}
+                          {(() => {
+                            const tr = ROUTE_TRAINERS.find(t => t.island === activeIsland && t.row === rIdx && t.col === cIdx);
+                            if (tr && !beatenTrainers.includes(tr.id)) {
+                              return (
+                                <span className="absolute -top-3.5 -right-3.5 text-[8px] bg-amber-950 border border-amber-500/80 text-amber-400 rounded-full w-4 h-4 flex items-center justify-center font-bold shadow-md animate-pulse" title={`Trainer ${tr.title} ${tr.name}`}>
+                                  ⚔️
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
                       )}
                     </button>
                   );
@@ -432,7 +448,31 @@ export const MapScreen: React.FC = () => {
               </div>
 
               {/* Action buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
+                {(() => {
+                  const trainer = ROUTE_TRAINERS.find(t => t.island === activeIsland && t.row === selectedNode.row && t.col === selectedNode.col);
+                  if (!trainer) return null;
+                  const isBeaten = beatenTrainers.includes(trainer.id);
+
+                  return (
+                    <div className="flex flex-col items-end gap-1">
+                      {isBeaten ? (
+                        <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-500/30 px-2.5 py-1.5 rounded-xl flex items-center gap-1">
+                          {trainer.title} {trainer.name} [BEATEN ✅]
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => startTrainerBattle(trainer.id)}
+                          className="px-4 py-2 bg-amber-600/25 border border-amber-500/60 hover:bg-amber-600/40 text-amber-300 font-bold text-xs tracking-wider rounded-xl transition-all active:scale-95 shadow-md shadow-amber-950/20 flex items-center gap-1.5"
+                        >
+                          <Swords className="w-4 h-4 text-amber-400" />
+                          <span>VS {trainer.title.toUpperCase()} {trainer.name.toUpperCase()}</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+
                 {['grass', 'shore', 'cave'].includes(selectedNode.type) && (
                   <button
                     onClick={() => startWildBattle(activeIsland, selectedNode.type)}

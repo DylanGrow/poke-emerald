@@ -3,6 +3,7 @@ import { getPokemonById } from '../db/pokemon';
 import type { PokemonData, Move } from '../db/pokemon';
 import { GYMS } from '../db/gyms';
 import { ELITE_16 } from '../db/elite16';
+import { ROUTE_TRAINERS } from '../db/trainers';
 import { sound } from '../utils/sound';
 
 export interface PlayerPokemon {
@@ -46,7 +47,8 @@ export interface BattleOpponent {
 }
 
 export interface BattleState {
-  type: 'wild' | 'gym' | 'elite';
+  type: 'wild' | 'trainer' | 'gym' | 'elite';
+  trainerId?: string;
   gymId?: number;
   eliteId?: number;
   opponentTeam: BattleOpponent[];
@@ -71,6 +73,7 @@ interface GameContextType {
   pcBox: PlayerPokemon[];
   pokedexCaught: number[];
   badgesDefeated: number[];
+  beatenTrainers: string[];
   eliteDefeatedCount: number;
   money: number;
   bag: Record<string, number>;
@@ -81,6 +84,7 @@ interface GameContextType {
   saveLoading: boolean;
   saveVerified: boolean | null;
   startWildBattle: (island: number, terrain?: string) => void;
+  startTrainerBattle: (trainerId: string) => void;
   startGymBattle: (gymId: number) => void;
   startEliteBattle: () => void;
   executeTurn: (playerMoveIndex: number) => void;
@@ -234,6 +238,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [pcBox, setPcBox] = useState<PlayerPokemon[]>([]);
   const [pokedexCaught, setPokedexCaught] = useState<number[]>([]);
   const [badgesDefeated, setBadgesDefeated] = useState<number[]>([]);
+  const [beatenTrainers, setBeatenTrainers] = useState<string[]>([]);
   const [eliteDefeatedCount, setEliteDefeatedCount] = useState<number>(0);
   const [money, setMoney] = useState<number>(3000);
   const [bag, setBag] = useState<Record<string, number>>({
@@ -272,6 +277,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPcBox(loadedPc);
         setPokedexCaught(data.pokedexCaught || []);
         setBadgesDefeated(data.badgesDefeated || []);
+        setBeatenTrainers(data.beatenTrainers || []);
         setEliteDefeatedCount(data.eliteDefeatedCount || 0);
         setMoney(data.money !== undefined ? data.money : 3000);
         setBag(data.bag || {});
@@ -293,6 +299,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPcBox([]);
     setPokedexCaught([]);
     setBadgesDefeated([]);
+    setBeatenTrainers([]);
     setEliteDefeatedCount(0);
     setMoney(3000);
     setBag({
@@ -322,10 +329,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Auto-save on game state changes
   useEffect(() => {
     if (team.length > 0) {
-      const state = { team, pcBox, pokedexCaught, badgesDefeated, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute };
+      const state = { team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute };
       localStorage.setItem('poke_emerald_save', JSON.stringify(state));
     }
-  }, [team, pcBox, pokedexCaught, badgesDefeated, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute]);
+  }, [team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute]);
 
   // Sync mute state with sound engine
   useEffect(() => {
@@ -419,6 +426,31 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       opponentActiveIndex: 0,
       playerActiveIndex: getFirstHealthyPokemonIndex(),
       logs: [`A wild ${opponent.name} (Lv. ${opponent.level}) appeared!`],
+      isCatching: false
+    });
+  };
+
+  const startTrainerBattle = (trainerId: string) => {
+    sound.playEncounter();
+    const trainer = ROUTE_TRAINERS.find(t => t.id === trainerId);
+    if (!trainer) return;
+
+    const oppTeam = trainer.roster.map(gp => {
+      const data = getPokemonById(gp.pokemonId);
+      return toBattleOpponent(data, gp.level);
+    });
+
+    setBattle({
+      type: 'trainer',
+      trainerId,
+      opponentTeam: oppTeam,
+      opponentActiveIndex: 0,
+      playerActiveIndex: getFirstHealthyPokemonIndex(),
+      logs: [
+        `${trainer.title} ${trainer.name} wants to battle!`,
+        `"${trainer.dialogueBefore}"`,
+        `${trainer.title} ${trainer.name} sent out ${oppTeam[0].name}!`
+      ],
       isCatching: false
     });
   };
@@ -931,6 +963,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const oLvl = currentBattle.opponentTeam[0].level;
         xpEarned = Math.floor(oLvl * 28);
         prizeMoney = Math.floor(oLvl * 15);
+      } else if (currentBattle.type === 'trainer') {
+        const trainer = ROUTE_TRAINERS.find(t => t.id === currentBattle.trainerId);
+        if (trainer) {
+          prizeMoney = trainer.rewardMoney;
+          xpEarned = trainer.roster[0].level * 45;
+          if (currentBattle.trainerId && !beatenTrainers.includes(currentBattle.trainerId)) {
+            setBeatenTrainers(prev => [...prev, currentBattle.trainerId!]);
+          }
+        }
       } else if (currentBattle.type === 'gym') {
         const gym = GYMS.find(g => g.id === currentBattle.gymId);
         if (gym) {
@@ -1322,6 +1363,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setPcBox(loadedPc);
         setPokedexCaught(decodedState.pokedexCaught || []);
         setBadgesDefeated(decodedState.badgesDefeated || []);
+        setBeatenTrainers(decodedState.beatenTrainers || []);
         setEliteDefeatedCount(decodedState.eliteDefeatedCount || 0);
         setMoney(decodedState.money || 0);
         setBag(decodedState.bag || {});
@@ -1364,8 +1406,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, mute, saveLoading, saveVerified, pendingMoveLearn,
-      startWildBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, mute, saveLoading, saveVerified, pendingMoveLearn,
+      startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}
     </GameContext.Provider>
