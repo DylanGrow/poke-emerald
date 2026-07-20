@@ -2,7 +2,8 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { GYMS } from '../db/gyms';
 import { ROUTE_TRAINERS } from '../db/trainers';
-import { Trophy, Award, DollarSign, Sparkles, UserCheck } from 'lucide-react';
+import { Award, DollarSign, Sparkles, UserCheck } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 export const TrainerCard: React.FC = () => {
   const {
@@ -24,9 +25,7 @@ export const TrainerCard: React.FC = () => {
       {/* Header Badge Title */}
       <div className="flex flex-col md:flex-row justify-between items-center border-b border-gray-850 pb-4 gap-4 z-10">
         <div className="flex items-center gap-3">
-          <div className="p-3 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-emerald-400">
-            <Trophy className="w-6 h-6" />
-          </div>
+          <BrandLogo height={32} />
           <div>
             <h2 className="text-xl font-black text-white tracking-wider uppercase">TRAINER PASSPORT & CARD</h2>
             <span className="text-xs font-mono text-emerald-400 font-extrabold uppercase tracking-widest">

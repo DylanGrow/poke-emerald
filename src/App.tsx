@@ -9,6 +9,7 @@ import { SaveManager } from './components/SaveManager';
 import { PartyManager } from './components/PartyManager';
 import { PCBox } from './components/PCBox';
 import { TrainerCard } from './components/TrainerCard';
+import { BrandLogo } from './components/BrandLogo';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
 import { Volume2, VolumeX, Shield, Trophy, Sword } from 'lucide-react';
@@ -61,6 +62,7 @@ const Dashboard: React.FC = () => {
     const pct = (current / max) * 100;
     if (pct > 50) return 'bg-emerald-500';
     if (pct > 20) return 'bg-yellow-500';
+    if (pct > 20) return 'bg-rose-500 animate-pulse';
     return 'bg-rose-500 animate-pulse';
   };
 
@@ -76,14 +78,7 @@ const Dashboard: React.FC = () => {
         
         {/* Title branding */}
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse">
-            {/* Emerald logo */}
-            <svg viewBox="0 0 100 100" className="w-5 h-5 fill-emerald-400">
-              <circle cx="50" cy="50" r="45" stroke="#10b981" strokeWidth="5" fill="none" />
-              <line x1="5" y1="50" x2="95" y2="50" stroke="#10b981" strokeWidth="5" />
-              <circle cx="50" cy="50" r="15" stroke="#10b981" strokeWidth="5" fill="#060913" />
-            </svg>
-          </div>
+          <BrandLogo height={32} />
           <div>
             <h1 className="text-md font-black tracking-widest text-emerald-400 uppercase flex items-center gap-1.5">
               <span>Pokémon Emerald</span>
@@ -434,7 +429,8 @@ const StarterSelectScreen: React.FC<StarterSelectProps> = ({ selectStarter }) =>
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-emerald-500/5 rounded-full filter blur-3xl pointer-events-none animate-pulse" />
       <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-emerald-500/5 rounded-full filter blur-3xl pointer-events-none animate-pulse" />
 
-      <div className="text-center flex flex-col gap-2 mb-8 z-10 max-w-lg">
+      <div className="text-center flex flex-col items-center gap-3 mb-8 z-10 max-w-lg">
+        <BrandLogo height={42} />
         <span className="text-xs font-mono tracking-widest text-emerald-400 font-extrabold uppercase">Archipelago League Entry</span>
         <h1 className="text-3xl font-black text-white tracking-wider">CHOOSE YOUR STARTER</h1>
         <p className="text-xs text-gray-400">
