@@ -45,7 +45,7 @@ const TYPE_COLORS: Record<string, string> = {
   Dark: '#705848', Fairy: '#ee99ac'
 };
 
-const MOVE_NAMES_BY_TYPE: Record<string, string[]> = {
+export const MOVE_NAMES_BY_TYPE: Record<string, string[]> = {
   Normal: ['Tackle', 'Scratch', 'Quick Attack', 'Body Slam', 'Hyper Beam', 'Swift', 'Double Edge', 'Growl'],
   Fire: ['Ember', 'Flame Wheel', 'Flamethrower', 'Fire Blast', 'Heat Wave', 'Overheat', 'Fire Spin'],
   Water: ['Water Gun', 'Bubble', 'Water Pulse', 'Surf', 'Hydro Pump', 'Waterfall', 'Aqua Jet'],

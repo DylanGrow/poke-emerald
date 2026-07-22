@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useGame, ITEMS } from '../context/GameContext';
 import { PokemonSprite } from './PokemonSprite';
-import { getPokemonById } from '../db/pokemon';
+import { getPokemonById, MOVE_NAMES_BY_TYPE } from '../db/pokemon';
 import { useGamepad } from '../hooks/useGamepad';
 import { Heart, Backpack, RefreshCw, LogOut } from 'lucide-react';
 import { sound } from '../utils/sound';
@@ -59,6 +59,7 @@ export const BattleScreen: React.FC = () => {
   const [currentLogIndex, setCurrentLogIndex] = useState(0);
   const [lastLogLength, setLastLogLength] = useState(0);
   const [introStage, setIntroStage] = useState<'sweep' | 'throw' | 'ready'>('sweep');
+  const [activeEffect, setActiveEffect] = useState<{ type: string; side: 'player' | 'opponent' } | null>(null);
 
   // Trigger battle transition sequence on mount
   useEffect(() => {
@@ -116,6 +117,41 @@ export const BattleScreen: React.FC = () => {
 
   const playerActive = team[battle.playerActiveIndex];
   const oppActive = battle.opponentTeam[battle.opponentActiveIndex];
+
+  // Sync log index to update active element particle animations
+  useEffect(() => {
+    const log = battle.logs[currentLogIndex];
+    if (!log) {
+      setActiveEffect(null);
+      return;
+    }
+
+    // Match patterns like: "Sylvagecko used leaf blade!"
+    const match = log.match(/(.+) used ([A-Za-z0-9 ]+)!/i);
+    if (match) {
+      const attackerName = match[1].trim().toLowerCase();
+      const moveName = match[2].trim().toLowerCase();
+
+      // Determine attacker identity
+      const isPlayer = attackerName === playerActive?.nickname.toLowerCase() || 
+                       attackerName === getPokemonById(playerActive?.pokemonId).name.toLowerCase();
+      
+      const targetSide = isPlayer ? 'opponent' : 'player';
+
+      // Find move type from MOVE_NAMES_BY_TYPE mapping
+      let moveType = 'Normal';
+      for (const [type, list] of Object.entries(MOVE_NAMES_BY_TYPE)) {
+        if (list.some(m => m.toLowerCase() === moveName)) {
+          moveType = type;
+          break;
+        }
+      }
+
+      setActiveEffect({ type: moveType, side: targetSide });
+    } else {
+      setActiveEffect(null);
+    }
+  }, [currentLogIndex, battle.logs, playerActive, oppActive]);
 
   // Reset historical hp counters when active battling indexes shift (switches/faints)
   useEffect(() => {
@@ -590,6 +626,9 @@ export const BattleScreen: React.FC = () => {
                   animating={battle.isCatching}
                   shiny={oppActive.shiny}
                 />
+                {activeEffect?.side === 'opponent' && (
+                  <MoveEffectOverlay type={activeEffect.type} />
+                )}
               </div>
             </div>
 
@@ -608,6 +647,9 @@ export const BattleScreen: React.FC = () => {
                   size={110}
                   shiny={playerActive.shiny}
                 />
+                {activeEffect?.side === 'player' && (
+                  <MoveEffectOverlay type={activeEffect.type} />
+                )}
               </div>
 
               <div className="bg-gray-900/90 border border-emerald-500/20 p-3 rounded-lg w-72 backdrop-blur-md shadow-lg flex flex-col gap-1.5 transform hover:scale-[1.02] transition-transform duration-200">
@@ -907,4 +949,165 @@ export const BattleScreen: React.FC = () => {
     </div>
   );
 };
+
+const MoveEffectOverlay: React.FC<{ type: string }> = ({ type }) => {
+  const getParticles = () => {
+    switch (type) {
+      case 'Fire':
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes ember-burn {
+                0% { transform: translate(0, 0) scale(0.3) rotate(0deg); opacity: 0; }
+                50% { opacity: 0.9; }
+                100% { transform: translate(var(--x-dir), var(--y-dir)) scale(1.4) rotate(180deg); opacity: 0; }
+              }
+            `}} />
+            <div className="relative w-full h-full">
+              {[
+                { x: '-30px', y: '-25px', delay: '0s', color: 'bg-orange-500' },
+                { x: '35px', y: '20px', delay: '0.1s', color: 'bg-red-500' },
+                { x: '-15px', y: '30px', delay: '0.2s', color: 'bg-yellow-400' },
+                { x: '25px', y: '-30px', delay: '0.15s', color: 'bg-orange-600' },
+                { x: '0px', y: '0px', delay: '0.3s', color: 'bg-red-600' },
+              ].map((p, i) => (
+                <div 
+                  key={i}
+                  className={`absolute w-3.5 h-3.5 rounded-full ${p.color} filter blur-[0.5px]`}
+                  style={{
+                    left: 'calc(50% - 7px)',
+                    top: 'calc(50% - 7px)',
+                    animation: 'ember-burn 0.5s ease-out infinite',
+                    animationDelay: p.delay,
+                    '--x-dir': p.x,
+                    '--y-dir': p.y,
+                  } as any}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      case 'Water':
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes bubble-rise {
+                0% { transform: translateY(30px) scale(0.4); opacity: 0; }
+                50% { opacity: 0.8; }
+                100% { transform: translateY(-35px) scale(1.2); opacity: 0; }
+              }
+            `}} />
+            <div className="relative w-full h-full">
+              {[
+                { left: '25%', delay: '0s' },
+                { left: '55%', delay: '0.12s' },
+                { left: '40%', delay: '0.24s' },
+                { left: '75%', delay: '0.18s' },
+                { left: '15%', delay: '0.3s' },
+              ].map((p, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-3 h-3 rounded-full border border-sky-300 bg-sky-400/40 backdrop-blur-[0.5px]"
+                  style={{
+                    left: p.left,
+                    bottom: '25%',
+                    animation: 'bubble-rise 0.6s ease-in-out infinite',
+                    animationDelay: p.delay
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      case 'Grass':
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes leaf-swirl {
+                0% { transform: rotate(0deg) translate(-25px) rotate(0deg) scale(0.6); opacity: 0; }
+                50% { opacity: 0.9; }
+                100% { transform: rotate(360deg) translate(25px) rotate(-360deg) scale(1.15); opacity: 0; }
+              }
+            `}} />
+            <div className="relative w-full h-full">
+              {[
+                { delay: '0s' },
+                { delay: '0.12s' },
+                { delay: '0.24s' },
+                { delay: '0.36s' },
+                { delay: '0.48s' },
+              ].map((p, i) => (
+                <div 
+                  key={i}
+                  className="absolute w-3.5 h-2 rounded-t-full rounded-br-full bg-emerald-500 rotate-45"
+                  style={{
+                    left: 'calc(50% - 7px)',
+                    top: 'calc(50% - 4px)',
+                    animation: 'leaf-swirl 0.6s linear infinite',
+                    animationDelay: p.delay
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      case 'Electric':
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes bolt-strike {
+                0%, 100% { opacity: 0; }
+                10%, 30%, 50% { opacity: 1; }
+                20%, 40% { opacity: 0; }
+              }
+            `}} />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <svg 
+                viewBox="0 0 100 100" 
+                className="w-16 h-16 fill-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.85)]"
+                style={{
+                  animation: 'bolt-strike 0.5s ease-out infinite'
+                }}
+              >
+                <polygon points="60,10 30,50 50,50 40,90 70,40 50,40" />
+              </svg>
+            </div>
+          </div>
+        );
+      case 'Normal':
+      default:
+        return (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+            <style dangerouslySetInnerHTML={{ __html: `
+              @keyframes slash-hit {
+                0% { transform: scaleX(0); opacity: 0; }
+                20% { opacity: 1; transform: scaleX(1.1); }
+                80% { opacity: 1; }
+                100% { opacity: 0; transform: scaleX(1); }
+              }
+            `}} />
+            <div className="relative w-full h-full flex items-center justify-center">
+              <div 
+                className="absolute w-20 h-1 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                style={{
+                  transform: 'rotate(-40deg)',
+                  animation: 'slash-hit 0.35s ease-out infinite'
+                }}
+              />
+              <div 
+                className="absolute w-20 h-1 bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                style={{
+                  transform: 'rotate(40deg)',
+                  animation: 'slash-hit 0.35s 0.12s ease-out infinite'
+                }}
+              />
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return getParticles();
+};
+
 export default BattleScreen;
