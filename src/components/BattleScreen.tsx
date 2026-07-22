@@ -4,6 +4,7 @@ import { PokemonSprite } from './PokemonSprite';
 import { getPokemonById } from '../db/pokemon';
 import { useGamepad } from '../hooks/useGamepad';
 import { Heart, Backpack, RefreshCw, LogOut } from 'lucide-react';
+import { sound } from '../utils/sound';
 
 const TYPE_EFFECTIVENESS: Record<string, Record<string, number>> = {
   Fire: { Grass: 2, Water: 0.5, Fire: 0.5, Rock: 0.5, Dragon: 0.5, Steel: 2, Ice: 2 },
@@ -54,6 +55,30 @@ export const BattleScreen: React.FC = () => {
   const [focusedPoke, setFocusedPoke] = useState<number>(0);
   const [focusedBag, setFocusedBag] = useState<number>(0);
 
+  // Dialog advancer state hooks
+  const [currentLogIndex, setCurrentLogIndex] = useState(0);
+  const [lastLogLength, setLastLogLength] = useState(0);
+  const [introStage, setIntroStage] = useState<'sweep' | 'throw' | 'ready'>('sweep');
+
+  // Trigger battle transition sequence on mount
+  useEffect(() => {
+    sound.playEncounter();
+    
+    // Staged timers to trigger visual sweep -> throw -> fight
+    const sweepTimer = setTimeout(() => {
+      setIntroStage('throw');
+    }, 600);
+
+    const readyTimer = setTimeout(() => {
+      setIntroStage('ready');
+    }, 1800);
+
+    return () => {
+      clearTimeout(sweepTimer);
+      clearTimeout(readyTimer);
+    };
+  }, []);
+
   // Retro combat anim state flags
   const [playerAttackClass, setPlayerAttackClass] = useState('');
   const [oppAttackClass, setOppAttackClass] = useState('');
@@ -65,7 +90,29 @@ export const BattleScreen: React.FC = () => {
   const [prevPlayerHp, setPrevPlayerHp] = useState<number | null>(null);
   const [prevOppHp, setPrevOppHp] = useState<number | null>(null);
 
+  // Sync log length changes and advance indices automatically
+  useEffect(() => {
+    if (battle) {
+      if (battle.logs.length > lastLogLength) {
+        if (lastLogLength > 0 && currentLogIndex === lastLogLength - 1) {
+          setCurrentLogIndex(lastLogLength);
+        }
+        setLastLogLength(battle.logs.length);
+      }
+    } else {
+      setLastLogLength(0);
+      setCurrentLogIndex(0);
+    }
+  }, [battle?.logs.length, lastLogLength, currentLogIndex]);
+
   if (!battle) return null;
+
+  const advanceLog = () => {
+    if (currentLogIndex < battle.logs.length - 1) {
+      sound.playSelect();
+      setCurrentLogIndex(prev => prev + 1);
+    }
+  };
 
   const playerActive = team[battle.playerActiveIndex];
   const oppActive = battle.opponentTeam[battle.opponentActiveIndex];
@@ -174,6 +221,11 @@ export const BattleScreen: React.FC = () => {
 
   // Keyboard navigation & Gamepad action triggers
   const triggerA = () => {
+    if (introStage !== 'ready') return;
+    if (currentLogIndex < battle.logs.length - 1) {
+      advanceLog();
+      return;
+    }
     if (activeTab === 'main') {
       if (focusedAction === 0) setActiveTab('moves');
       else if (focusedAction === 1) setActiveTab('pokemon');
@@ -235,6 +287,18 @@ export const BattleScreen: React.FC = () => {
   // Keyboard hooks
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (introStage !== 'ready') {
+        e.preventDefault();
+        return;
+      }
+      if (currentLogIndex < battle.logs.length - 1) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'z' || e.key === 'x') {
+          advanceLog();
+          e.preventDefault();
+        }
+        return;
+      }
+
       // Direct move select hotkeys: 1, 2, 3, 4
       if (e.key === '1' && playerActive.moves[0]) {
         executeTurn(0);
@@ -309,7 +373,7 @@ export const BattleScreen: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeTab, focusedAction, focusedMove, focusedPoke, focusedBag, battle, playerActive, team]);
+  }, [activeTab, focusedAction, focusedMove, focusedPoke, focusedBag, battle, playerActive, team, currentLogIndex, introStage]);
 
   // Controller support
   useGamepad({
@@ -340,103 +404,243 @@ export const BattleScreen: React.FC = () => {
       <div className="relative w-full h-80 bg-gradient-to-b from-slate-900/60 to-slate-950/90 rounded-xl border border-gray-800 p-4 flex flex-col justify-between overflow-hidden shadow-inner">
         <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
         
-        {/* Red screen flash damage indicator */}
-        {redFlashClass && (
-          <div className={`absolute inset-0 bg-red-600/30 z-30 pointer-events-none transition-opacity ${redFlashClass}`} />
+        {/* GBA Animation Styles */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @keyframes slide-out-bar {
+            0% { transform: scaleX(1); }
+            100% { transform: scaleX(0); }
+          }
+          @keyframes slide-in-arena-right {
+            0% { transform: translateX(120%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
+          }
+          @keyframes fade-out-trainer {
+            0% { transform: translateX(0); opacity: 1; }
+            80% { transform: translateX(-20px); opacity: 1; }
+            100% { transform: translateX(-80px); opacity: 0; }
+          }
+          @keyframes throw-ball {
+            0% { transform: translate(-30px, 20px) scale(0.6) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { transform: translate(50px, -35px) scale(1.1) rotate(270deg); opacity: 1; }
+            100% { transform: translate(95px, 25px) scale(0.6) rotate(360deg); opacity: 0; }
+          }
+          @keyframes ball-burst {
+            0% { transform: scale(0); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: scale(2.2); opacity: 0.8; filter: brightness(2.5); }
+            100% { transform: scale(3.2); opacity: 0; }
+          }
+          @keyframes release-pokemon {
+            0% { transform: scale(0); opacity: 0; filter: brightness(2.5); }
+            40% { transform: scale(1.2); opacity: 1; filter: brightness(2); }
+            100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+          }
+        `}} />
+
+        {/* Sweep intro cover overlay */}
+        {introStage === 'sweep' && (
+          <div className="absolute inset-0 bg-slate-950 z-[40] grid grid-rows-6 gap-0">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="h-full bg-slate-950 origin-left"
+                style={{ 
+                  animation: 'slide-out-bar 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+                  animationDelay: `${i * 45}ms`
+                }}
+              />
+            ))}
+          </div>
         )}
 
-        {/* Top: Opponent */}
-        <div className="flex justify-between items-start z-10">
-          <div className="bg-gray-900/90 border border-gray-850 p-3 rounded-lg w-72 backdrop-blur-md shadow-lg flex flex-col gap-1.5 transform hover:scale-[1.02] transition-transform duration-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-wide flex items-center gap-1">
-                  {oppActive.name}
-                  {oppActive.shiny && <span className="text-yellow-400 animate-pulse text-[11px]" title="Shiny">✨</span>}
+        {/* Cinematic Trainer Throw Overlay */}
+        {introStage === 'throw' ? (
+          <div className="absolute inset-0 bg-[#060913] flex flex-col justify-between p-4 z-10">
+            {/* Opponent side */}
+            <div className="flex justify-end items-start mt-4 pr-12">
+              <div 
+                className="flex flex-col items-center gap-2"
+                style={{ animation: 'slide-in-arena-right 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards' }}
+              >
+                <PokemonSprite 
+                  pokemonId={oppActive.pokemonId} 
+                  color={oppActive.color} 
+                  secondaryColor={oppActive.secondaryColor} 
+                  shapeSeed={oppActive.shapeSeed} 
+                  bodyType={oppActive.bodyType} 
+                  size={110}
+                  shiny={oppActive.shiny}
+                />
+                <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-widest bg-slate-900/90 border border-slate-800 px-2 py-0.5 rounded shadow-md animate-pulse">
+                  Wild {oppActive.name.toUpperCase()} appeared!
                 </span>
-                {getStatusBadge(oppActive.status)}
               </div>
-              <span className="text-xs font-mono text-emerald-400">Lv.{oppActive.level}</span>
             </div>
-            <div className="w-full h-3 bg-gray-950 rounded-full overflow-hidden border border-gray-800 p-[1.5px]">
+
+            {/* Player side */}
+            <div className="flex justify-start items-end mb-4 pl-12 relative h-36">
+              {/* Trainer Silhouette */}
               <div 
-                className={`h-full rounded-full transition-all duration-500 ${getHpColor(oppHpPct)}`} 
-                style={{ width: `${oppHpPct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-gray-400">
-              <div className="flex gap-1">
-                {oppActive.types.map(t => (
-                  <span key={t} className="px-1.5 py-[1px] rounded text-[8px] bg-slate-800 text-slate-300 border border-slate-700">{t}</span>
-                ))}
-              </div>
-              <span>{oppActive.currentHp} / {oppActive.maxHp} HP</span>
-            </div>
-          </div>
-
-          <div className={`mr-8 flex items-center justify-center h-28 w-28 relative transition-transform duration-300 ${oppAttackClass} ${oppHitClass}`}>
-            {oppHitClass && (
-              <div className="absolute inset-0 bg-rose-650/30 rounded-full filter blur-md animate-pulse z-0 pointer-events-none" />
-            )}
-            <PokemonSprite 
-              pokemonId={oppActive.pokemonId} 
-              color={oppActive.color} 
-              secondaryColor={oppActive.secondaryColor} 
-              shapeSeed={oppActive.shapeSeed} 
-              bodyType={oppActive.bodyType} 
-              size={110}
-              animating={battle.isCatching}
-              shiny={oppActive.shiny}
-            />
-          </div>
-        </div>
-
-        {/* Bottom: Player */}
-        <div className="flex justify-between items-end z-10">
-          <div className={`ml-8 flex items-center justify-center h-28 w-28 relative transition-transform duration-300 ${playerAttackClass} ${playerHitClass}`}>
-            {playerHitClass && (
-              <div className="absolute inset-0 bg-rose-650/30 rounded-full filter blur-md animate-pulse z-0 pointer-events-none" />
-            )}
-            <PokemonSprite 
-              pokemonId={playerActive.pokemonId} 
-              color={getPokemonById(playerActive.pokemonId).color} 
-              secondaryColor={getPokemonById(playerActive.pokemonId).secondaryColor} 
-              shapeSeed={getPokemonById(playerActive.pokemonId).shapeSeed} 
-              bodyType={getPokemonById(playerActive.pokemonId).bodyType} 
-              size={110}
-              shiny={playerActive.shiny}
-            />
-          </div>
-
-          <div className="bg-gray-900/90 border border-emerald-500/20 p-3 rounded-lg w-72 backdrop-blur-md shadow-lg flex flex-col gap-1.5 transform hover:scale-[1.02] transition-transform duration-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="font-bold tracking-wide text-emerald-400 flex items-center gap-1">
-                  {playerActive.nickname}
-                  {playerActive.shiny && <span className="text-yellow-400 animate-pulse text-[11px]" title="Shiny">✨</span>}
+                className="flex flex-col items-center relative z-10"
+                style={{ animation: 'fade-out-trainer 0.7s 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards' }}
+              >
+                <svg viewBox="0 0 100 100" className="w-24 h-24 fill-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+                  <rect x="40" y="10" width="20" height="20" rx="4" />
+                  <rect x="42" y="15" width="16" height="5" fill="#03060f" />
+                  <rect x="35" y="32" width="30" height="35" rx="6" />
+                  <rect x="30" y="38" width="8" height="20" rx="3" />
+                  <rect x="62" y="38" width="8" height="20" rx="3" />
+                  <path d="M 60 18 L 72 18 L 70 22 L 60 22 Z" fill="#34d399" />
+                </svg>
+                <span className="text-[9px] font-mono font-black text-emerald-400 uppercase tracking-widest bg-slate-900/90 border border-emerald-500/20 px-2.5 py-0.5 rounded shadow-md">
+                  Go! {playerActive.nickname.toUpperCase()}!
                 </span>
-                {getStatusBadge(playerActive.status)}
               </div>
-              <span className="text-xs font-mono text-gray-400">Lv.{playerActive.level}</span>
-            </div>
-            <div className="w-full h-3 bg-gray-950 rounded-full overflow-hidden border border-gray-800 p-[1.5px]">
+
+              {/* Poké Ball projectile */}
               <div 
-                className={`h-full rounded-full transition-all duration-500 ${getHpColor(playerHpPct)}`} 
-                style={{ width: `${playerHpPct}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] font-mono text-gray-400">
-              <span>HP: {playerActive.currentHp} / {playerActive.maxHp}</span>
-              <span>XP: {playerActive.xp} / {playerActive.xpToNext}</span>
-            </div>
-            <div className="w-full h-[3px] bg-slate-950 rounded-full overflow-hidden">
+                className="absolute left-20 bottom-12 z-25"
+                style={{ animation: 'throw-ball 0.6s 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards', opacity: 0 }}
+              >
+                <div className="w-5 h-5 rounded-full border border-slate-950 bg-red-500 relative overflow-hidden animate-spin">
+                  <div className="absolute bottom-0 left-0 right-0 h-2.5 bg-white" />
+                  <div className="absolute top-[9px] left-0 right-0 h-[1.5px] bg-slate-950" />
+                  <div className="absolute top-[6.5px] left-[6.5px] w-1.5 h-1.5 rounded-full bg-white border border-slate-950" />
+                </div>
+              </div>
+
+              {/* Release Flash effect */}
               <div 
-                className="h-full bg-blue-500" 
-                style={{ width: `${Math.min(100, (playerActive.xp / playerActive.xpToNext) * 100)}%` }}
+                className="absolute left-48 bottom-12 w-8 h-8 rounded-full bg-emerald-300 pointer-events-none z-30"
+                style={{ 
+                  animation: 'ball-burst 0.4s 1.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+                  opacity: 0,
+                  transform: 'scale(0)' 
+                }}
               />
+
+              {/* Released Pokemon */}
+              <div 
+                className="absolute left-44 bottom-2 z-20"
+                style={{ 
+                  animation: 'release-pokemon 0.6s 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                  opacity: 0,
+                  transform: 'scale(0)'
+                }}
+              >
+                <PokemonSprite 
+                  pokemonId={playerActive.pokemonId} 
+                  color={getPokemonById(playerActive.pokemonId).color} 
+                  secondaryColor={getPokemonById(playerActive.pokemonId).secondaryColor} 
+                  shapeSeed={getPokemonById(playerActive.pokemonId).shapeSeed} 
+                  bodyType={getPokemonById(playerActive.pokemonId).bodyType} 
+                  size={110}
+                  shiny={playerActive.shiny}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <>
+            {redFlashClass && (
+              <div className={`absolute inset-0 bg-red-600/30 z-30 pointer-events-none transition-opacity ${redFlashClass}`} />
+            )}
+
+            {/* Top: Opponent */}
+            <div className="flex justify-between items-start z-10">
+              <div className="bg-gray-900/90 border border-gray-850 p-3 rounded-lg w-72 backdrop-blur-md shadow-lg flex flex-col gap-1.5 transform hover:scale-[1.02] transition-transform duration-200">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold tracking-wide flex items-center gap-1">
+                      {oppActive.name}
+                      {oppActive.shiny && <span className="text-yellow-400 animate-pulse text-[11px]" title="Shiny">✨</span>}
+                    </span>
+                    {getStatusBadge(oppActive.status)}
+                  </div>
+                  <span className="text-xs font-mono text-emerald-400">Lv.{oppActive.level}</span>
+                </div>
+                <div className="w-full h-3 bg-gray-950 rounded-full overflow-hidden border border-gray-800 p-[1.5px]">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${getHpColor(oppHpPct)}`} 
+                    style={{ width: `${oppHpPct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                  <div className="flex gap-1">
+                    {oppActive.types.map(t => (
+                      <span key={t} className="px-1.5 py-[1px] rounded text-[8px] bg-slate-800 text-slate-300 border border-slate-700">{t}</span>
+                    ))}
+                  </div>
+                  <span>{oppActive.currentHp} / {oppActive.maxHp} HP</span>
+                </div>
+              </div>
+
+              <div className={`mr-8 flex items-center justify-center h-28 w-28 relative transition-transform duration-300 ${oppAttackClass} ${oppHitClass}`}>
+                {oppHitClass && (
+                  <div className="absolute inset-0 bg-rose-650/30 rounded-full filter blur-md animate-pulse z-0 pointer-events-none" />
+                )}
+                <PokemonSprite 
+                  pokemonId={oppActive.pokemonId} 
+                  color={oppActive.color} 
+                  secondaryColor={oppActive.secondaryColor} 
+                  shapeSeed={oppActive.shapeSeed} 
+                  bodyType={oppActive.bodyType} 
+                  size={110}
+                  animating={battle.isCatching}
+                  shiny={oppActive.shiny}
+                />
+              </div>
+            </div>
+
+            {/* Bottom: Player */}
+            <div className="flex justify-between items-end z-10">
+              <div className={`ml-8 flex items-center justify-center h-28 w-28 relative transition-transform duration-300 ${playerAttackClass} ${playerHitClass}`}>
+                {playerHitClass && (
+                  <div className="absolute inset-0 bg-rose-650/30 rounded-full filter blur-md animate-pulse z-0 pointer-events-none" />
+                )}
+                <PokemonSprite 
+                  pokemonId={playerActive.pokemonId} 
+                  color={getPokemonById(playerActive.pokemonId).color} 
+                  secondaryColor={getPokemonById(playerActive.pokemonId).secondaryColor} 
+                  shapeSeed={getPokemonById(playerActive.pokemonId).shapeSeed} 
+                  bodyType={getPokemonById(playerActive.pokemonId).bodyType} 
+                  size={110}
+                  shiny={playerActive.shiny}
+                />
+              </div>
+
+              <div className="bg-gray-900/90 border border-emerald-500/20 p-3 rounded-lg w-72 backdrop-blur-md shadow-lg flex flex-col gap-1.5 transform hover:scale-[1.02] transition-transform duration-200">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold tracking-wide text-emerald-400 flex items-center gap-1">
+                      {playerActive.nickname}
+                      {playerActive.shiny && <span className="text-yellow-400 animate-pulse text-[11px]" title="Shiny">✨</span>}
+                    </span>
+                    {getStatusBadge(playerActive.status)}
+                  </div>
+                  <span className="text-xs font-mono text-gray-400">Lv.{playerActive.level}</span>
+                </div>
+                <div className="w-full h-3 bg-gray-950 rounded-full overflow-hidden border border-gray-800 p-[1.5px]">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${getHpColor(playerHpPct)}`} 
+                    style={{ width: `${playerHpPct}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[10px] font-mono text-gray-400">
+                  <span>HP: {playerActive.currentHp} / {playerActive.maxHp}</span>
+                  <span>XP: {playerActive.xp} / {playerActive.xpToNext}</span>
+                </div>
+                <div className="w-full h-[3px] bg-slate-950 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-blue-500" 
+                    style={{ width: `${Math.min(100, (playerActive.xp / playerActive.xpToNext) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {battle.isCatching && (
           <div className="absolute inset-0 bg-emerald-950/20 backdrop-blur-[2px] flex items-center justify-center z-30 animate-pulse">
@@ -449,17 +653,39 @@ export const BattleScreen: React.FC = () => {
       </div>
 
       {/* Battle Log Message Center */}
-      <div className="w-full h-24 bg-gray-900 border border-gray-850 rounded-xl p-4 overflow-y-auto font-mono text-sm text-gray-300 flex flex-col gap-1.5 shadow-md">
-        {battle.logs.slice(-3).map((log, i) => (
-          <div key={i} className="flex gap-2">
-            <span className="text-emerald-500">&gt;</span>
-            <span>{log}</span>
+      <div 
+        onClick={advanceLog}
+        className={`w-full h-24 bg-gray-900 border-2 rounded-xl p-4 font-mono text-sm text-gray-200 relative shadow-md flex items-center justify-between cursor-pointer select-none transition-all duration-300 ${
+          currentLogIndex < battle.logs.length - 1
+            ? 'border-emerald-500 bg-[#070d1a] shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:border-emerald-400' 
+            : 'border-slate-800 hover:border-slate-700'
+        }`}
+      >
+        <div className="flex gap-3 items-center pr-8">
+          <span className="text-emerald-400 font-extrabold text-md animate-pulse">&gt;</span>
+          <span className="leading-relaxed font-bold tracking-wide">
+            {battle.logs[currentLogIndex] || ''}
+          </span>
+        </div>
+        
+        {currentLogIndex < battle.logs.length - 1 && (
+          <div className="absolute bottom-2.5 right-3.5 flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold uppercase tracking-wider select-none animate-pulse">
+            <span>NEXT</span>
+            <span className="animate-bounce text-sm">▼</span>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Action / Controls Panel */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      {currentLogIndex < battle.logs.length - 1 ? (
+        <div 
+          onClick={advanceLog}
+          className="w-full py-6 bg-slate-900/30 border border-slate-850 rounded-2xl flex items-center justify-center font-mono text-[10px] text-emerald-400/70 font-extrabold uppercase tracking-widest cursor-pointer hover:bg-slate-900/50 transition-all select-none animate-pulse"
+        >
+          <span>Click log box or press SPACE / ENTER to continue...</span>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         
         {/* Tab Selection */}
         {activeTab === 'main' && (
@@ -677,6 +903,7 @@ export const BattleScreen: React.FC = () => {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 };
