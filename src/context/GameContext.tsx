@@ -80,6 +80,8 @@ interface GameContextType {
   activeIsland: number;
   currentLocation: string;
   battle: BattleState | null;
+  evolution: { nickname: string; fromName: string; toName: string; fromId: number; toId: number } | null;
+  setEvolution: (val: { nickname: string; fromName: string; toName: string; fromId: number; toId: number } | null) => void;
   mute: boolean;
   saveLoading: boolean;
   saveVerified: boolean | null;
@@ -258,6 +260,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [saveLoading, setSaveLoading] = useState<boolean>(false);
   const [saveVerified, setSaveVerified] = useState<boolean | null>(null);
   const [pendingMoveLearn, setPendingMoveLearn] = useState<{ pokemonId: string; move: Move } | null>(null);
+  const [evolution, setEvolution] = useState<{ nickname: string; fromName: string; toName: string; fromId: number; toId: number } | null>(null);
 
   // Initialize game state (starters)
   useEffect(() => {
@@ -1040,6 +1043,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (poke.nickname === pokeData.name) {
             finalNickname = evolvedData.name;
           }
+          setEvolution({
+            nickname: poke.nickname,
+            fromName: pokeData.name,
+            toName: evolvedData.name,
+            fromId: poke.pokemonId,
+            toId: finalPokemonId
+          });
         }
         
         return {
@@ -1406,7 +1416,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, mute, saveLoading, saveVerified, pendingMoveLearn,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}

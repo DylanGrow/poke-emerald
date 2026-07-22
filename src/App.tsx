@@ -10,6 +10,7 @@ import { PartyManager } from './components/PartyManager';
 import { PCBox } from './components/PCBox';
 import { TrainerCard } from './components/TrainerCard';
 import { BrandLogo } from './components/BrandLogo';
+import { EvolutionOverlay } from './components/EvolutionOverlay';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
 import { Volume2, VolumeX, Shield, Trophy, Sword } from 'lucide-react';
@@ -22,6 +23,8 @@ const Dashboard: React.FC = () => {
     badgesDefeated,
     eliteDefeatedCount,
     battle,
+    evolution,
+    setEvolution,
     mute,
     toggleMute,
     pendingMoveLearn,
@@ -350,6 +353,17 @@ const Dashboard: React.FC = () => {
           </div>
         );
       })()}
+
+      {evolution && (
+        <EvolutionOverlay
+          nickname={evolution.nickname}
+          fromName={evolution.fromName}
+          toName={evolution.toName}
+          fromId={evolution.fromId}
+          toId={evolution.toId}
+          onClose={() => setEvolution(null)}
+        />
+      )}
 
       {/* 6. Virtual Mobile Controller Pad */}
       <VirtualController />

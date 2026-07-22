@@ -116,6 +116,24 @@ class RetroSynth {
     this.playTone(1320.00, 'sine', 0.3, 0.07, 0.2);
   }
 
+  playEvolution() {
+    // Evolving sounds: rising pitch tones repeating rapidly
+    const duration = 0.15;
+    for (let i = 0; i < 20; i++) {
+      const delay = i * 0.18;
+      const freq = 330 + (i % 4) * 110 + Math.floor(i / 4) * 50;
+      this.playTone(freq, 'square', duration, 0.04, delay);
+    }
+  }
+
+  playEvolutionComplete() {
+    // Joyous retro evolve fanfare
+    const notes = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50, 1318.51];
+    notes.forEach((freq, idx) => {
+      this.playTone(freq, 'square', 0.25, 0.05, idx * 0.06);
+    });
+  }
+
   playCatchShake() {
     this.playTone(180, 'sine', 0.08, 0.08);
   }
