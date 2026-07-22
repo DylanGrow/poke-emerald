@@ -106,6 +106,9 @@ interface GameContextType {
   reorderTeam: (indexA: number, indexB: number) => void;
   swapPokemonWithPc: (pcIndex: number, teamIndex: number) => void;
   depositToPc: (teamIndex: number) => void;
+  pendingNickname: { id: string; name: string } | null;
+  setPendingNickname: (val: { id: string; name: string } | null) => void;
+  renamePokemon: (id: string, newName: string) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -261,6 +264,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [saveVerified, setSaveVerified] = useState<boolean | null>(null);
   const [pendingMoveLearn, setPendingMoveLearn] = useState<{ pokemonId: string; move: Move } | null>(null);
   const [evolution, setEvolution] = useState<{ nickname: string; fromName: string; toName: string; fromId: number; toId: number } | null>(null);
+  const [pendingNickname, setPendingNickname] = useState<{ id: string; name: string } | null>(null);
 
   // Initialize game state (starters)
   useEffect(() => {
@@ -703,7 +707,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Accuracy Roll Check
         const accuracyRoll = Math.random() * 100;
         if (accuracyRoll > pMove.accuracy) {
-          logs.push(`${pActive.nickname} used ${pMove.name}! But the attack missed!`);
+          logs.push(`${pActive.nickname} used ${pMove.name}!`);
+          logs.push("But the attack missed!");
           return;
         }
         
@@ -714,7 +719,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         oppHp = Math.max(0, oppHp - pDmg.damage);
-        logs.push(`${pActive.nickname} used ${pMove.name}! Deals ${pDmg.damage} damage.${pDmg.log}`);
+        logs.push(`${pActive.nickname} used ${pMove.name}!`);
+        logs.push(`Deals ${pDmg.damage} damage.`);
+
+        if (pDmg.log.includes("critical")) {
+          logs.push("A critical hit!");
+        }
+        if (pDmg.log.includes("super effective")) {
+          logs.push("It's super effective!");
+        } else if (pDmg.log.includes("not very effective")) {
+          logs.push("It's not very effective...");
+        } else if (pDmg.log.includes("no effect")) {
+          logs.push("It has no effect.");
+        }
+
         sound.playHit();
         
         // Inflict status effect to opponent
@@ -751,7 +769,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Accuracy Roll Check
         const accuracyRoll = Math.random() * 100;
         if (accuracyRoll > oMove.accuracy) {
-          logs.push(`${oActive.name} used ${oMove.name}! But the attack missed!`);
+          logs.push(`${oActive.name} used ${oMove.name}!`);
+          logs.push("But the attack missed!");
           return;
         }
 
@@ -762,7 +781,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         plHp = Math.max(0, plHp - oDmg.damage);
-        logs.push(`${oActive.name} used ${oMove.name}! Deals ${oDmg.damage} damage.${oDmg.log}`);
+        logs.push(`${oActive.name} used ${oMove.name}!`);
+        logs.push(`Deals ${oDmg.damage} damage.`);
+
+        if (oDmg.log.includes("critical")) {
+          logs.push("A critical hit!");
+        }
+        if (oDmg.log.includes("super effective")) {
+          logs.push("It's super effective!");
+        } else if (oDmg.log.includes("not very effective")) {
+          logs.push("It's not very effective...");
+        } else if (oDmg.log.includes("no effect")) {
+          logs.push("It has no effect.");
+        }
+        
         sound.playHit();
         
         // Inflict status effect to player
@@ -1134,6 +1166,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPcBox(prev => [...prev, newCaught]);
           }
 
+          setPendingNickname({ id: newCaught.id, name: oActive.name });
+
           // Record Pokedex
           setPokedexCaught(prev => prev.includes(oActive.pokemonId) ? prev : [...prev, oActive.pokemonId]);
 
@@ -1414,9 +1448,16 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPendingMoveLearn(null);
   };
 
+  const renamePokemon = (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    sound.playSelect();
+    setTeam(prev => prev.map(p => p.id === id ? { ...p, nickname: newName } : p));
+    setPcBox(prev => prev.map(p => p.id === id ? { ...p, nickname: newName } : p));
+  };
+
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}

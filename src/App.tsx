@@ -11,6 +11,7 @@ import { PCBox } from './components/PCBox';
 import { TrainerCard } from './components/TrainerCard';
 import { BrandLogo } from './components/BrandLogo';
 import { EvolutionOverlay } from './components/EvolutionOverlay';
+import { NicknameModal } from './components/NicknameModal';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
 import { Volume2, VolumeX, Shield, Trophy, Sword } from 'lucide-react';
@@ -25,6 +26,8 @@ const Dashboard: React.FC = () => {
     battle,
     evolution,
     setEvolution,
+    pendingNickname,
+    setPendingNickname,
     mute,
     toggleMute,
     pendingMoveLearn,
@@ -362,6 +365,14 @@ const Dashboard: React.FC = () => {
           fromId={evolution.fromId}
           toId={evolution.toId}
           onClose={() => setEvolution(null)}
+        />
+      )}
+
+      {pendingNickname && (
+        <NicknameModal
+          id={pendingNickname.id}
+          defaultName={pendingNickname.name}
+          onClose={() => setPendingNickname(null)}
         />
       )}
 
