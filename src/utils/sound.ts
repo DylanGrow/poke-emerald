@@ -285,6 +285,70 @@ class RetroSynth {
       if (idx !== -1) this.bgmNodes.splice(idx, 1);
     };
   }
+  // --- Credits BGM ---
+  playCreditsBGM() {
+    this.stopBGM();
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    this.bgmPlaying = true;
+    this.scheduleCreditsLoop();
+  }
+
+  private scheduleCreditsLoop() {
+    if (!this.bgmPlaying || this.isMuted || !this.ctx) {
+      this.bgmPlaying = false;
+      return;
+    }
+
+    const bpm = 116;
+    const beat = 60 / bpm;
+
+    // Triumphant nostalgic GBA credits melody
+    const creditsMelody: [number, number, number][] = [
+      [523.25, 1.0, 0],   // C5
+      [659.25, 1.0, 1],   // E5
+      [783.99, 1.5, 2],   // G5
+      [880.00, 0.5, 3.5], // A5
+      [1046.50, 2.0, 4],  // C6
+      [987.77, 1.0, 6],   // B5
+      [880.00, 1.0, 7],   // A5
+      [783.99, 2.0, 8],   // G5
+      [659.25, 1.0, 10],  // E5
+      [587.33, 1.0, 11],  // D5
+      [523.25, 2.0, 12],  // C5
+      [587.33, 1.0, 14],  // D5
+      [659.25, 1.0, 15],  // E5
+    ];
+
+    const creditsBass: [number, number, number][] = [
+      [130.81, 2.0, 0],  // C3
+      [164.81, 2.0, 2],  // E3
+      [174.61, 2.0, 4],  // F3
+      [196.00, 2.0, 6],  // G3
+      [130.81, 2.0, 8],  // C3
+      [110.00, 2.0, 10], // A2
+      [174.61, 2.0, 12], // F3
+      [196.00, 2.0, 14], // G3
+    ];
+
+    const now = this.ctx.currentTime;
+    const loopDuration = 16 * beat;
+
+    creditsMelody.forEach(([freq, dur, startBeat]) => {
+      this.scheduleBGMNote(freq, 'square', dur * beat * 0.9, 0.04, now + startBeat * beat);
+      // Dual layer octave harmonic for GBA audio warmth
+      this.scheduleBGMNote(freq / 2, 'triangle', dur * beat * 0.9, 0.03, now + startBeat * beat);
+    });
+
+    creditsBass.forEach(([freq, dur, startBeat]) => {
+      this.scheduleBGMNote(freq, 'triangle', dur * beat * 0.85, 0.05, now + startBeat * beat);
+    });
+
+    this.bgmTimer = setTimeout(() => {
+      this.scheduleCreditsLoop();
+    }, loopDuration * 1000 - 50);
+  }
 }
 
 export const sound = new RetroSynth();

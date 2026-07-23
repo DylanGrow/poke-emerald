@@ -3,6 +3,7 @@ import { useGame } from '../context/GameContext';
 import { PokemonSprite } from './PokemonSprite';
 import { BrandLogo } from './BrandLogo';
 import { getPokemonById } from '../db/pokemon';
+import { sound } from '../utils/sound';
 import { Star, Sparkles, Heart, Trophy, Shield, Zap, Music, Code, Database, Gamepad2, Palette, ChevronUp } from 'lucide-react';
 
 // Credits data structure
@@ -209,6 +210,14 @@ export const CreditsScreen: React.FC<{ onClose: () => void }> = ({ onClose }) =>
   const [autoScroll, setAutoScroll] = useState(true);
   const [showComplete, setShowComplete] = useState(false);
   const animFrame = useRef<number>(0);
+
+  // Play dedicated retro GBA credits music theme
+  useEffect(() => {
+    sound.playCreditsBGM();
+    return () => {
+      sound.playBGM();
+    };
+  }, []);
 
   // Auto-scroll at a slow cinematic speed
   useEffect(() => {
