@@ -12,9 +12,10 @@ import { TrainerCard } from './components/TrainerCard';
 import { BrandLogo } from './components/BrandLogo';
 import { EvolutionOverlay } from './components/EvolutionOverlay';
 import { NicknameModal } from './components/NicknameModal';
+import { CreditsScreen } from './components/CreditsScreen';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
-import { Volume2, VolumeX, Shield, Trophy, Sword } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Trophy, Sword, Film } from 'lucide-react';
 import { sound } from './utils/sound';
 
 const Dashboard: React.FC = () => {
@@ -35,7 +36,7 @@ const Dashboard: React.FC = () => {
     selectStarter
   } = useGame();
 
-  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits'>('map');
 
   // Start procedural BGM on first user interaction if not muted
   useEffect(() => {
@@ -254,6 +255,17 @@ const Dashboard: React.FC = () => {
                 >
                   Security Vault
                 </button>
+                <button
+                  onClick={() => { sound.playSelect(); setActiveTab('credits'); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 ${
+                    activeTab === 'credits' 
+                      ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400' 
+                      : 'hover:bg-slate-900 text-gray-400'
+                  }`}
+                >
+                  <Film className="w-3 h-3" />
+                  Credits
+                </button>
               </div>
             </div>
 
@@ -265,6 +277,7 @@ const Dashboard: React.FC = () => {
               {activeTab === 'pokedex' && <Pokedex />}
               {activeTab === 'card' && <TrainerCard />}
               {activeTab === 'save' && <SaveManager />}
+              {activeTab === 'credits' && <CreditsScreen onClose={() => setActiveTab('map')} />}
             </div>
           </>
         )}
