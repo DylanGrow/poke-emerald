@@ -30,7 +30,9 @@ export const MapScreen: React.FC = () => {
     startEliteBattle,
     travelToIsland,
     setLocation,
-    battle
+    battle,
+    isBiking,
+    toggleBiking
   } = useGame();
 
   const [playerPos, setPlayerPos] = useState<{ row: number; col: number }>({ row: 2, col: 2 });
@@ -312,27 +314,43 @@ export const MapScreen: React.FC = () => {
           <span className="text-xs font-mono text-gray-400">Current Node: {currentLocation}</span>
         </div>
         
-        {/* Island Selector Tabs */}
-        <div className="flex gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-gray-800">
-          {[1, 2, 3, 4].map(num => {
-            const isUnlocked = num === 1 || totalBadgesEarned >= (num - 1) * 8;
-            return (
-              <button
-                key={num}
-                disabled={!isUnlocked}
-                onClick={() => travelToIsland(num)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  activeIsland === num 
-                    ? 'bg-emerald-600 text-white shadow-md' 
-                    : isUnlocked 
-                    ? 'hover:bg-slate-800 text-gray-300' 
-                    : 'text-gray-650 cursor-not-allowed opacity-30'
-                }`}
-              >
-                Isle {num}
-              </button>
-            );
-          })}
+        <div className="flex items-center gap-3 flex-wrap md:flex-nowrap justify-center">
+          {/* Island Selector Tabs */}
+          <div className="flex gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-gray-800">
+            {[1, 2, 3, 4].map(num => {
+              const isUnlocked = num === 1 || totalBadgesEarned >= (num - 1) * 8;
+              return (
+                <button
+                  key={num}
+                  disabled={!isUnlocked}
+                  onClick={() => travelToIsland(num)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    activeIsland === num 
+                      ? 'bg-emerald-600 text-white shadow-md' 
+                      : isUnlocked 
+                      ? 'hover:bg-slate-800 text-gray-300' 
+                      : 'text-gray-650 cursor-not-allowed opacity-30'
+                  }`}
+                >
+                  Isle {num}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mach Bike Toggle */}
+          <button
+            onClick={toggleBiking}
+            className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 border active:scale-95 cursor-pointer ${
+              isBiking
+                ? 'bg-yellow-500/20 border-yellow-400/50 text-yellow-400 shadow-[0_0_15px_rgba(234,179,8,0.2)]'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-yellow-400 hover:border-yellow-500/30'
+            }`}
+            title="Toggle Mach Bike"
+          >
+            <span>🚲</span>
+            <span>Mach Bike</span>
+          </button>
         </div>
       </div>
 
@@ -359,14 +377,18 @@ export const MapScreen: React.FC = () => {
                       title={node.name}
                     >
                       {isPlayerHere ? (
-                        <div className="relative w-6 h-6 flex items-center justify-center animate-bounce">
-                          <svg viewBox="0 0 100 100" className="w-5.5 h-5.5 fill-emerald-400">
-                            <circle cx="50" cy="50" r="45" stroke="#10b981" strokeWidth="10" fill="#060913" />
-                            <path d="M 9.5 50 A 40.5 40.5 0 0 1 90.5 50 Z" fill="#10b981" />
-                            <line x1="8" y1="50" x2="92" y2="50" stroke="#060913" strokeWidth="12" />
-                            <circle cx="50" cy="50" r="16" stroke="#060913" strokeWidth="8" fill="#ffffff" />
-                            <circle cx="50" cy="50" r="6" fill="#34d399" />
-                          </svg>
+                        <div className={`relative w-6 h-6 flex items-center justify-center ${isBiking ? 'animate-[bounce_0.4s_infinite]' : 'animate-bounce'}`}>
+                          {isBiking ? (
+                            <span className="text-lg drop-shadow-[0_0_8px_rgba(234,179,8,0.7)]">🚲</span>
+                          ) : (
+                            <svg viewBox="0 0 100 100" className="w-5.5 h-5.5 fill-emerald-400">
+                              <circle cx="50" cy="50" r="45" stroke="#10b981" strokeWidth="10" fill="#060913" />
+                              <path d="M 9.5 50 A 40.5 40.5 0 0 1 90.5 50 Z" fill="#10b981" />
+                              <line x1="8" y1="50" x2="92" y2="50" stroke="#060913" strokeWidth="12" />
+                              <circle cx="50" cy="50" r="16" stroke="#060913" strokeWidth="8" fill="#ffffff" />
+                              <circle cx="50" cy="50" r="6" fill="#34d399" />
+                            </svg>
+                          )}
                         </div>
                       ) : (
                         <div className="relative flex items-center justify-center">

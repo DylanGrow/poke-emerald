@@ -349,6 +349,99 @@ class RetroSynth {
       this.scheduleCreditsLoop();
     }, loopDuration * 1000 - 50);
   }
+
+  playBikeBGM() {
+    this.stopBGM();
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    this.bgmPlaying = true;
+    this.scheduleBikeLoop();
+  }
+
+  private scheduleBikeLoop() {
+    if (!this.bgmPlaying || this.isMuted || !this.ctx) {
+      this.bgmPlaying = false;
+      return;
+    }
+
+    const bpm = 160;
+    const beat = 60 / bpm;
+    const sixteenth = beat / 4;
+
+    const melodyNotes: [number, number, number][] = [
+      [523.25, 0.25, 0],    // C5
+      [587.33, 0.25, 0.25],  // D5
+      [659.25, 0.25, 0.5],   // E5
+      [698.46, 0.25, 0.75],  // F5
+      [783.99, 0.5, 1.0],    // G5
+      [880.00, 0.5, 1.5],    // A5
+      [987.77, 0.5, 2.0],    // B5
+      [1046.50, 1.0, 2.5],   // C6
+      
+      [880.00, 0.25, 4.0],   // A5
+      [783.99, 0.25, 4.25],  // G5
+      [880.00, 0.25, 4.5],   // A5
+      [1046.50, 0.25, 4.75], // C6
+      [987.77, 0.5, 5.0],    // B5
+      [783.99, 0.5, 5.5],    // G5
+      [659.25, 1.0, 6.0],    // E5
+      
+      [698.46, 0.25, 8.0],   // F5
+      [659.25, 0.25, 8.25],  // E5
+      [698.46, 0.25, 8.5],   // F5
+      [880.00, 0.25, 8.75],  // A5
+      [783.99, 0.5, 9.0],    // G5
+      [587.33, 0.5, 9.5],    // D5
+      [523.25, 1.0, 10.0],   // C5
+      
+      [587.33, 0.25, 12.0],  // D5
+      [659.25, 0.25, 12.25], // E5
+      [698.46, 0.25, 12.5],  // F5
+      [783.99, 0.25, 12.75], // G5
+      [880.00, 0.5, 13.0],   // A5
+      [987.77, 0.5, 13.5],   // B5
+      [1046.50, 1.5, 14.0],  // C6
+    ];
+
+    const bassNotes: [number, number, number][] = [
+      [130.81, 1.0, 0],   // C3
+      [130.81, 1.0, 1],
+      [130.81, 1.0, 2],
+      [130.81, 1.0, 3],
+      [174.61, 1.0, 4],   // F3
+      [174.61, 1.0, 5],
+      [196.00, 1.0, 6],   // G3
+      [196.00, 1.0, 7],
+      [110.00, 1.0, 8],   // A2
+      [110.00, 1.0, 9],
+      [130.81, 1.0, 10],  // C3
+      [130.81, 1.0, 11],
+      [196.00, 1.0, 12],  // G3
+      [196.00, 1.0, 13],
+      [130.81, 2.0, 14],  // C3
+    ];
+
+    const now = this.ctx.currentTime;
+    const loopDuration = 16 * beat;
+
+    melodyNotes.forEach(([freq, dur, startBeat]) => {
+      this.scheduleBGMNote(freq, 'square', dur * beat * 0.95, 0.04, now + startBeat * beat);
+    });
+
+    bassNotes.forEach(([freq, dur, startBeat]) => {
+      this.scheduleBGMNote(freq, 'triangle', dur * beat * 0.9, 0.05, now + startBeat * beat);
+    });
+
+    for (let i = 0; i < 32; i++) {
+      const t = now + i * (beat / 2);
+      this.scheduleBGMNote(9000, 'square', sixteenth * 0.25, 0.008, t);
+    }
+
+    this.bgmTimer = setTimeout(() => {
+      this.scheduleBikeLoop();
+    }, loopDuration * 1000 - 50);
+  }
 }
 
 export const sound = new RetroSynth();

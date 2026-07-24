@@ -33,7 +33,8 @@ const Dashboard: React.FC = () => {
     toggleMute,
     pendingMoveLearn,
     learnPendingMove,
-    selectStarter
+    selectStarter,
+    isBiking
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits'>('map');
@@ -46,10 +47,18 @@ const Dashboard: React.FC = () => {
     }
     
     // Play immediately if AudioContext is already unlocked by previous interactions
-    sound.playBGM();
+    if (isBiking) {
+      sound.playBikeBGM();
+    } else {
+      sound.playBGM();
+    }
 
     const startAudio = () => {
-      sound.playBGM();
+      if (isBiking) {
+        sound.playBikeBGM();
+      } else {
+        sound.playBGM();
+      }
       window.removeEventListener('click', startAudio);
       window.removeEventListener('keydown', startAudio);
       window.removeEventListener('touchstart', startAudio);
@@ -63,7 +72,7 @@ const Dashboard: React.FC = () => {
       window.removeEventListener('keydown', startAudio);
       window.removeEventListener('touchstart', startAudio);
     };
-  }, [mute]);
+  }, [mute, isBiking]);
 
   const getHpColor = (current: number, max: number) => {
     const pct = (current / max) * 100;
