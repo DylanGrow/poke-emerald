@@ -9,6 +9,7 @@ interface PokemonSpriteProps {
   size?: number;
   animating?: boolean;
   shiny?: boolean;
+  isEgg?: boolean;
 }
 
 export const PokemonSprite: React.FC<PokemonSpriteProps> = ({
@@ -18,7 +19,8 @@ export const PokemonSprite: React.FC<PokemonSpriteProps> = ({
   bodyType,
   size = 120,
   animating = false,
-  shiny = false
+  shiny = false,
+  isEgg = false
 }) => {
   // Deterministic random number generator based on shapeSeed
   const seedRand = (s: number) => {
@@ -57,101 +59,170 @@ export const PokemonSprite: React.FC<PokemonSpriteProps> = ({
     }
   };
 
-  switch (bodyType) {
-    case 0: // Blob/Cute (chubby body)
-      for (let r = 5; r <= 13; r++) {
-        const w = r === 5 || r === 13 ? 3 : r === 6 || r === 12 ? 5 : 6;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Ears/Nubs
-      drawPixel(4, 3, color);
-      drawPixel(4, 4, color);
-      break;
+  if (isEgg) {
+    const eggBg = '#fcf8ee';
+    const spotA = color;
+    const spotB = secondaryColor;
 
-    case 1: // Beast/Quadruped (elongated body, tail)
-      for (let r = 6; r <= 12; r++) {
-        const w = r === 6 || r === 12 ? 4 : 6;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Horn/Crown
-      drawPixel(4, 6, secondaryColor);
-      drawPixel(5, 6, color);
-      // Legs
-      drawPixel(13, 3, secondaryColor);
-      drawPixel(13, 5, secondaryColor);
-      break;
+    // Row-by-row egg pixels
+    const eggShape: Record<number, number[]> = {
+      3: [7, 8],
+      4: [6, 7, 8, 9],
+      5: [5, 6, 7, 8, 9, 10],
+      6: [4, 5, 6, 7, 8, 9, 10, 11],
+      7: [4, 5, 6, 7, 8, 9, 10, 11],
+      8: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      9: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      10: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      11: [4, 5, 6, 7, 8, 9, 10, 11],
+      12: [4, 5, 6, 7, 8, 9, 10, 11],
+      13: [5, 6, 7, 8, 9, 10],
+    };
 
-    case 2: // Bird/Avian (wings, tail feathers)
-      for (let r = 5; r <= 12; r++) {
-        const w = r === 5 || r === 12 ? 3 : r === 6 || r === 11 ? 4 : 5;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Wings
-      drawPixel(7, 2, secondaryColor);
-      drawPixel(8, 1, secondaryColor);
-      drawPixel(9, 1, color);
-      // Beak
-      drawPixel(6, 7, '#ffaa00');
-      break;
+    // Draw background egg pixels
+    Object.entries(eggShape).forEach(([rStr, cols]) => {
+      const r = parseInt(rStr);
+      cols.forEach(c => {
+        grid[r][c] = eggBg;
+      });
+    });
 
-    case 3: // Humanoid/Fighter (shoulders, chest plates)
-      for (let r = 5; r <= 12; r++) {
-        const w = r === 5 || r === 12 ? 3 : 4;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+    // Add spots
+    const spots = [
+      { r: 5, c: 6, color: spotA },
+      { r: 6, c: 9, color: spotB },
+      { r: 8, c: 4, color: spotA },
+      { r: 9, c: 8, color: spotB },
+      { r: 10, c: 11, color: spotA },
+      { r: 11, c: 5, color: spotB },
+      { r: 12, c: 8, color: spotA },
+    ];
+    spots.forEach(s => {
+      if (grid[s.r] && grid[s.r][s.c] !== undefined) {
+        grid[s.r][s.c] = s.color;
       }
-      // Shoulders
-      drawPixel(6, 3, secondaryColor);
-      drawPixel(7, 2, color);
-      // Feet
-      drawPixel(13, 3, secondaryColor);
-      break;
+    });
 
-    case 4: // Insect/Bug (segmented body, antennas)
-      for (let r = 5; r <= 13; r += 2) {
-        for (let c = 5; c < 8; c++) drawPixel(r, c, color);
-        if (r < 13) {
-          for (let c = 6; c < 8; c++) drawPixel(r + 1, c, secondaryColor);
+  } else {
+    switch (bodyType) {
+      case 0: // Blob/Cute (chubby body)
+        for (let r = 5; r <= 13; r++) {
+          const w = r === 5 || r === 13 ? 3 : r === 6 || r === 12 ? 5 : 6;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
         }
-      }
-      // Antennas
-      drawPixelAsymmetric(3, 4, secondaryColor);
-      drawPixelAsymmetric(2, 3, secondaryColor);
-      drawPixelAsymmetric(3, 11, secondaryColor);
-      drawPixelAsymmetric(2, 12, secondaryColor);
-      break;
+        // Ears/Nubs
+        drawPixel(4, 3, color);
+        drawPixel(4, 4, color);
+        break;
 
-    case 5: // Aquatic/Fish (torpedo body, fins)
-      for (let r = 6; r <= 11; r++) {
-        const w = r === 6 || r === 11 ? 4 : 6;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Fins
-      drawPixel(8, 1, secondaryColor);
-      drawPixel(9, 1, secondaryColor);
-      // Dorsal Fin
-      drawPixel(5, 5, secondaryColor);
-      break;
+      case 1: // Beast/Quadruped (elongated body, tail)
+        for (let r = 6; r <= 12; r++) {
+          const w = r === 6 || r === 12 ? 4 : 6;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Horn/Crown
+        drawPixel(4, 6, secondaryColor);
+        drawPixel(5, 6, color);
+        // Legs
+        drawPixel(13, 3, secondaryColor);
+        drawPixel(13, 5, secondaryColor);
+        break;
 
-    case 6: // Plant/Elemental (leaf head, root base)
-      for (let r = 6; r <= 13; r++) {
-        const w = r === 6 || r === 13 ? 3 : r === 7 || r === 12 ? 4 : 5;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Leaf top
-      drawPixel(4, 7, secondaryColor);
-      drawPixel(3, 7, secondaryColor);
-      drawPixel(4, 6, secondaryColor);
-      break;
+      case 2: // Bird/Avian (wings, tail feathers)
+        for (let r = 5; r <= 12; r++) {
+          const w = r === 5 || r === 12 ? 3 : r === 6 || r === 11 ? 4 : 5;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Wings
+        drawPixel(7, 2, secondaryColor);
+        drawPixel(8, 1, secondaryColor);
+        drawPixel(9, 1, color);
+        // Beak
+        drawPixel(6, 7, '#ffaa00');
+        break;
 
-    case 7: // Mech/Shadow (floating core prism)
-      for (let r = 5; r <= 12; r++) {
-        const w = r === 5 || r === 12 ? 2 : r === 6 || r === 11 ? 4 : 5;
-        for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
-      }
-      // Orbiting core particles
-      drawPixelAsymmetric(4, 2, secondaryColor);
-      drawPixelAsymmetric(11, 13, secondaryColor);
-      break;
+      case 3: // Humanoid/Fighter (shoulders, chest plates)
+        for (let r = 5; r <= 12; r++) {
+          const w = r === 5 || r === 12 ? 3 : 4;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Shoulders
+        drawPixel(6, 3, secondaryColor);
+        drawPixel(7, 2, color);
+        // Feet
+        drawPixel(13, 3, secondaryColor);
+        break;
+
+      case 4: // Insect/Bug (segmented body, antennas)
+        for (let r = 5; r <= 13; r += 2) {
+          for (let c = 5; c < 8; c++) drawPixel(r, c, color);
+          if (r < 13) {
+            for (let c = 6; c < 8; c++) drawPixel(r + 1, c, secondaryColor);
+          }
+        }
+        // Antennas
+        drawPixelAsymmetric(3, 4, secondaryColor);
+        drawPixelAsymmetric(2, 3, secondaryColor);
+        drawPixelAsymmetric(3, 11, secondaryColor);
+        drawPixelAsymmetric(2, 12, secondaryColor);
+        break;
+
+      case 5: // Aquatic/Fish (torpedo body, fins)
+        for (let r = 6; r <= 11; r++) {
+          const w = r === 6 || r === 11 ? 4 : 6;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Fins
+        drawPixel(8, 1, secondaryColor);
+        drawPixel(9, 1, secondaryColor);
+        // Dorsal Fin
+        drawPixel(5, 5, secondaryColor);
+        break;
+
+      case 6: // Plant/Elemental (leaf head, root base)
+        for (let r = 6; r <= 13; r++) {
+          const w = r === 6 || r === 13 ? 3 : r === 7 || r === 12 ? 4 : 5;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Leaf top
+        drawPixel(4, 7, secondaryColor);
+        drawPixel(3, 7, secondaryColor);
+        drawPixel(4, 6, secondaryColor);
+        break;
+
+      case 7: // Mech/Shadow (floating core prism)
+        for (let r = 5; r <= 12; r++) {
+          const w = r === 5 || r === 12 ? 2 : r === 6 || r === 11 ? 4 : 5;
+          for (let c = 8 - w; c < 8; c++) drawPixel(r, c, color);
+        }
+        // Orbiting core particles
+        drawPixelAsymmetric(4, 2, secondaryColor);
+        drawPixelAsymmetric(11, 13, secondaryColor);
+        break;
+    }
+
+    // Draw Eyes and Facial Details (placed symmetrically on rows 6-7)
+    if (bodyType !== 7) {
+      // Left Eye
+      drawPixelAsymmetric(7, 5, eyeWhite);
+      drawPixelAsymmetric(7, 6, eyePupil);
+      drawPixelAsymmetric(8, 5, cheekColor); // Cheek
+
+      // Right Eye (Mirrored position)
+      drawPixelAsymmetric(7, 10, eyeWhite);
+      drawPixelAsymmetric(7, 9, eyePupil);
+      drawPixelAsymmetric(8, 10, cheekColor); // Cheek
+
+      // Mouth
+      drawPixelAsymmetric(9, 7, outlineColor);
+      drawPixelAsymmetric(9, 8, outlineColor);
+    } else {
+      // Mech eye core
+      drawPixelAsymmetric(7, 7, '#ffffff');
+      drawPixelAsymmetric(7, 8, '#ffffff');
+      drawPixelAsymmetric(8, 7, secondaryColor);
+      drawPixelAsymmetric(8, 8, secondaryColor);
+    }
   }
 
   // 2. Generate dark outline borders around body pixels
@@ -171,29 +242,6 @@ export const PokemonSprite: React.FC<PokemonSpriteProps> = ({
         }
       }
     }
-  }
-
-  // 3. Draw Eyes and Facial Details (placed symmetrically on rows 6-7)
-  if (bodyType !== 7) {
-    // Left Eye
-    drawPixelAsymmetric(7, 5, eyeWhite);
-    drawPixelAsymmetric(7, 6, eyePupil);
-    drawPixelAsymmetric(8, 5, cheekColor); // Cheek
-
-    // Right Eye (Mirrored position)
-    drawPixelAsymmetric(7, 10, eyeWhite);
-    drawPixelAsymmetric(7, 9, eyePupil);
-    drawPixelAsymmetric(8, 10, cheekColor); // Cheek
-
-    // Mouth
-    drawPixelAsymmetric(9, 7, outlineColor);
-    drawPixelAsymmetric(9, 8, outlineColor);
-  } else {
-    // Mech eye core
-    drawPixelAsymmetric(7, 7, '#ffffff');
-    drawPixelAsymmetric(7, 8, '#ffffff');
-    drawPixelAsymmetric(8, 7, secondaryColor);
-    drawPixelAsymmetric(8, 8, secondaryColor);
   }
 
   const shinyFilter = shiny ? 'hue-rotate(135deg) saturate(1.4) contrast(1.1)' : undefined;

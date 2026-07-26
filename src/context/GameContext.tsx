@@ -23,6 +23,9 @@ export interface PlayerPokemon {
   moves: Move[];
   status?: 'SLP' | 'PAR' | 'PSN' | 'BRN' | null;
   shiny?: boolean;
+  isEgg?: boolean;
+  hatchSteps?: number;
+  eggParentSpeciesId?: number;
 }
 
 export interface BattleOpponent {
@@ -113,6 +116,18 @@ interface GameContextType {
   toggleBiking: () => void;
   showEndingCredits: boolean;
   setShowEndingCredits: (val: boolean) => void;
+  daycare: {
+    parentA: PlayerPokemon | null;
+    parentB: PlayerPokemon | null;
+    eggReady: boolean;
+    steps: number;
+  };
+  depositDaycare: (parentAId: string, parentBId: string) => void;
+  withdrawDaycare: (parentKey: 'parentA' | 'parentB') => void;
+  collectEgg: () => void;
+  hatching: { eggId: string; pokemonId: number; name: string } | null;
+  setHatching: (val: { eggId: string; pokemonId: number; name: string } | null) => void;
+  finishHatching: (nickname: string) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -271,6 +286,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [pendingNickname, setPendingNickname] = useState<{ id: string; name: string } | null>(null);
   const [isBiking, setIsBiking] = useState<boolean>(false);
   const [showEndingCredits, setShowEndingCredits] = useState<boolean>(false);
+  const [daycare, setDaycare] = useState<{
+    parentA: PlayerPokemon | null;
+    parentB: PlayerPokemon | null;
+    eggReady: boolean;
+    steps: number;
+  }>({ parentA: null, parentB: null, eggReady: false, steps: 0 });
+  const [hatching, setHatching] = useState<{ eggId: string; pokemonId: number; name: string } | null>(null);
 
   // Initialize game state (starters)
   useEffect(() => {
@@ -297,6 +319,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setActiveIsland(data.activeIsland || 1);
         setCurrentLocation(data.currentLocation || 'Littleroot Town');
         setMute(data.mute || false);
+        if (data.daycare) {
+          setDaycare(data.daycare);
+        }
       } catch (e) {
         console.error("Failed to parse local save, generating starter");
         generateNewGame();
@@ -342,10 +367,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Auto-save on game state changes
   useEffect(() => {
     if (team.length > 0) {
-      const state = { team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute };
+      const state = { team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute, daycare };
       localStorage.setItem('poke_emerald_save', JSON.stringify(state));
     }
-  }, [team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute]);
+  }, [team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, mute, daycare]);
 
   // Sync mute state with sound engine
   useEffect(() => {
@@ -375,6 +400,52 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setLocation = (loc: string) => {
     sound.playSelect();
     setCurrentLocation(loc);
+
+    // Daycare egg generation steps tracking
+    setDaycare(prev => {
+      if (!prev.parentA || !prev.parentB || prev.eggReady) return prev;
+      const nextSteps = prev.steps + 1;
+      const ready = nextSteps >= 25; // 25 steps to ready an egg
+      return {
+        ...prev,
+        steps: nextSteps,
+        eggReady: ready
+      };
+    });
+
+    // Egg hatching steps tracking
+    setTeam(prevTeam => {
+      let eggToHatch: PlayerPokemon | null = null;
+      const updated = prevTeam.map(poke => {
+        if (poke.isEgg && poke.hatchSteps !== undefined) {
+          const nextHatchSteps = poke.hatchSteps - 1;
+          if (nextHatchSteps <= 0 && !eggToHatch) {
+            eggToHatch = poke;
+          }
+          return {
+            ...poke,
+            hatchSteps: nextHatchSteps
+          };
+        }
+        return poke;
+      });
+
+      if (eggToHatch) {
+        const targetEgg = eggToHatch as PlayerPokemon;
+        const babySpeciesId = targetEgg.eggParentSpeciesId || targetEgg.pokemonId;
+        const babyData = getPokemonById(babySpeciesId);
+        
+        setTimeout(() => {
+          setHatching({
+            eggId: targetEgg.id,
+            pokemonId: babySpeciesId,
+            name: babyData.name
+          });
+        }, 300);
+      }
+
+      return updated;
+    });
   };
 
   // Battles setup
@@ -1480,9 +1551,147 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const getBaseSpeciesId = (speciesId: number): number => {
+    for (let id = 1; id <= 650; id++) {
+      try {
+        const pk = getPokemonById(id);
+        if (pk && pk.evolutionId === speciesId) {
+          return getBaseSpeciesId(id);
+        }
+      } catch (e) {}
+    }
+    return speciesId;
+  };
+
+  const depositDaycare = (parentAId: string, parentBId: string) => {
+    sound.playSelect();
+    let pA: PlayerPokemon | null = null;
+    let pB: PlayerPokemon | null = null;
+
+    setTeam(prevTeam => {
+      const matchA = prevTeam.find(p => p.id === parentAId);
+      const matchB = prevTeam.find(p => p.id === parentBId);
+      if (matchA) pA = matchA;
+      if (matchB) pB = matchB;
+      return prevTeam.filter(p => p.id !== parentAId && p.id !== parentBId);
+    });
+
+    setPcBox(prevPc => {
+      const matchA = prevPc.find(p => p.id === parentAId);
+      const matchB = prevPc.find(p => p.id === parentBId);
+      if (matchA) pA = matchA;
+      if (matchB) pB = matchB;
+      return prevPc.filter(p => p.id !== parentAId && p.id !== parentBId);
+    });
+
+    setTimeout(() => {
+      if (pA && pB) {
+        setDaycare({
+          parentA: pA,
+          parentB: pB,
+          eggReady: false,
+          steps: 0
+        });
+      }
+    }, 100);
+  };
+
+  const withdrawDaycare = (parentKey: 'parentA' | 'parentB') => {
+    sound.playSelect();
+    setDaycare(prev => {
+      const target = prev[parentKey];
+      if (!target) return prev;
+
+      setTeam(prevTeam => {
+        if (prevTeam.length < 6) {
+          return [...prevTeam, target];
+        } else {
+          setPcBox(prevPc => [...prevPc, target]);
+          return prevTeam;
+        }
+      });
+
+      return {
+        ...prev,
+        [parentKey]: null,
+        eggReady: false,
+        steps: 0
+      };
+    });
+  };
+
+  const collectEgg = () => {
+    if (team.length >= 6) return;
+    if (!daycare.parentA || !daycare.parentB || !daycare.eggReady) return;
+    
+    sound.playSelect();
+    const baseSpeciesId = getBaseSpeciesId(daycare.parentA.pokemonId);
+    const parentData = getPokemonById(baseSpeciesId);
+    
+    const egg: PlayerPokemon = {
+      id: `egg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      pokemonId: baseSpeciesId,
+      nickname: 'EGG',
+      level: 1,
+      xp: 0,
+      xpToNext: 10,
+      currentHp: 10,
+      maxHp: 10,
+      attack: 5,
+      defense: 5,
+      spAttack: 5,
+      spDefense: 5,
+      speed: 5,
+      moves: parentData.moves.slice(0, 2),
+      isEgg: true,
+      hatchSteps: 20,
+      eggParentSpeciesId: baseSpeciesId
+    };
+
+    setTeam(prev => [...prev, egg]);
+    setDaycare(prev => ({
+      ...prev,
+      eggReady: false,
+      steps: 0
+    }));
+  };
+
+  const finishHatching = (nickname: string) => {
+    if (!hatching) return;
+    sound.playLevelUp();
+    const babyData = getPokemonById(hatching.pokemonId);
+    const stats = calculateStats(babyData.baseStats, 5);
+    
+    const babyPokemon: PlayerPokemon = {
+      id: hatching.eggId,
+      pokemonId: hatching.pokemonId,
+      nickname: nickname.trim() || babyData.name,
+      level: 5,
+      xp: Math.floor(Math.pow(5, 3) * 0.8),
+      xpToNext: Math.floor(Math.pow(6, 3) * 0.8),
+      currentHp: stats.maxHp,
+      maxHp: stats.maxHp,
+      attack: stats.attack,
+      defense: stats.defense,
+      spAttack: stats.spAttack,
+      spDefense: stats.spDefense,
+      speed: stats.speed,
+      moves: babyData.moves.filter(m => m.level <= 5).slice(-4)
+    };
+
+    setTeam(prev => prev.map(p => p.id === hatching.eggId ? babyPokemon : p));
+    
+    setPokedexCaught(prev => {
+      if (prev.includes(hatching.pokemonId)) return prev;
+      return [...prev, hatching.pokemonId];
+    });
+
+    setHatching(null);
+  };
+
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}

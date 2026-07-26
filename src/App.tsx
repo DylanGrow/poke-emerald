@@ -13,9 +13,11 @@ import { BrandLogo } from './components/BrandLogo';
 import { EvolutionOverlay } from './components/EvolutionOverlay';
 import { NicknameModal } from './components/NicknameModal';
 import { CreditsScreen } from './components/CreditsScreen';
+import { Daycare } from './components/Daycare';
+import { HatchOverlay } from './components/HatchOverlay';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
-import { Volume2, VolumeX, Shield, Trophy, Sword, Film } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Trophy, Sword, Film, Heart } from 'lucide-react';
 import { sound } from './utils/sound';
 
 const Dashboard: React.FC = () => {
@@ -36,10 +38,11 @@ const Dashboard: React.FC = () => {
     selectStarter,
     isBiking,
     showEndingCredits,
-    setShowEndingCredits
+    setShowEndingCredits,
+    hatching
   } = useGame();
 
-  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits'>('map');
+  const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits' | 'daycare'>('map');
 
   // Start procedural BGM on first user interaction if not muted
   useEffect(() => {
@@ -166,7 +169,11 @@ const Dashboard: React.FC = () => {
                           : 'border-slate-850 bg-slate-900/20 hover:border-emerald-500/30 hover:bg-slate-900/40'
                       }`}
                     >
-                      <span className="absolute top-1.5 right-1.5 text-[8.5px] font-mono text-gray-500">Lv.{poke.level}</span>
+                      {poke.isEgg ? (
+                        <span className="absolute top-1.5 right-1.5 text-[8.5px] font-mono text-yellow-500/80 uppercase font-black">EGG</span>
+                      ) : (
+                        <span className="absolute top-1.5 right-1.5 text-[8.5px] font-mono text-gray-500">Lv.{poke.level}</span>
+                      )}
                       
                       <div className={isFainted ? 'filter grayscale brightness-75' : ''}>
                         <PokemonSprite
@@ -177,6 +184,7 @@ const Dashboard: React.FC = () => {
                           bodyType={dbInfo.bodyType}
                           size={50}
                           shiny={poke.shiny}
+                          isEgg={poke.isEgg}
                         />
                       </div>
                       
@@ -185,17 +193,26 @@ const Dashboard: React.FC = () => {
                           {poke.nickname}
                           {poke.shiny && <span className="text-yellow-400 text-[10px]" title="Shiny">✨</span>}
                         </span>
-                        {/* HP Bar */}
-                        <div className="w-full h-1.5 bg-gray-950 rounded-full overflow-hidden border border-gray-900/80">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-300 ${getHpColor(poke.currentHp, poke.maxHp)}`}
-                            style={{ width: `${hpPct}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between text-[8px] font-mono text-gray-500 px-0.5">
-                          <span>HP</span>
-                          <span>{poke.currentHp}/{poke.maxHp}</span>
-                        </div>
+                        {poke.isEgg ? (
+                          <div className="flex flex-col gap-0.5 text-[8.5px] font-mono text-gray-500 text-center">
+                            <span className="text-emerald-500 font-bold uppercase tracking-wider">Hatching Soon</span>
+                            <span>{poke.hatchSteps} steps left</span>
+                          </div>
+                        ) : (
+                          <>
+                            {/* HP Bar */}
+                            <div className="w-full h-1.5 bg-gray-950 rounded-full overflow-hidden border border-gray-900/80">
+                              <div 
+                                className={`h-full rounded-full transition-all duration-300 ${getHpColor(poke.currentHp, poke.maxHp)}`}
+                                style={{ width: `${hpPct}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[8px] font-mono text-gray-500 px-0.5">
+                              <span>HP</span>
+                              <span>{poke.currentHp}/{poke.maxHp}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   );
@@ -235,6 +252,17 @@ const Dashboard: React.FC = () => {
                   }`}
                 >
                   PC Storage
+                </button>
+                <button
+                  onClick={() => { sound.playSelect(); setActiveTab('daycare'); }}
+                  className={`px-4 py-2 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 ${
+                    activeTab === 'daycare' 
+                      ? 'bg-emerald-600/20 border border-emerald-500/40 text-emerald-400' 
+                      : 'hover:bg-slate-900 text-gray-400'
+                  }`}
+                >
+                  <Heart className="w-3.5 h-3.5 text-rose-500" />
+                  Daycare
                 </button>
                 <button
                   onClick={() => { sound.playSelect(); setActiveTab('pokedex'); }}
@@ -288,6 +316,7 @@ const Dashboard: React.FC = () => {
               {activeTab === 'pokedex' && <Pokedex />}
               {activeTab === 'card' && <TrainerCard />}
               {activeTab === 'save' && <SaveManager />}
+              {activeTab === 'daycare' && <Daycare />}
               {activeTab === 'credits' && <CreditsScreen onClose={() => setActiveTab('map')} />}
             </div>
           </>
@@ -408,7 +437,7 @@ const Dashboard: React.FC = () => {
           }}
         />
       )}
-
+      {hatching && <HatchOverlay />}
       {/* 6. Virtual Mobile Controller Pad */}
       <VirtualController />
     </div>
