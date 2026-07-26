@@ -26,6 +26,12 @@ export interface PlayerPokemon {
   isEgg?: boolean;
   hatchSteps?: number;
   eggParentSpeciesId?: number;
+  hpUpCount?: number;
+  proteinCount?: number;
+  ironCount?: number;
+  calciumCount?: number;
+  zincCount?: number;
+  carbosCount?: number;
 }
 
 export interface BattleOpponent {
@@ -67,7 +73,7 @@ export interface BagItem {
   count: number;
   description: string;
   cost: number;
-  type: 'ball' | 'heal' | 'revive' | 'cure';
+  type: 'ball' | 'heal' | 'revive' | 'cure' | 'vitamin';
   value: number; // heals hp, multiplier, etc.
 }
 
@@ -166,18 +172,33 @@ export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
   'Full Heal': { name: 'Full Heal', description: 'Cures all status conditions (Sleep, Burn, Poison, Paralysis).', cost: 600, type: 'cure', value: 1.0 },
   'Rare Candy': { name: 'Rare Candy', description: 'Instantly increases a Pokémon\'s level by 1.', cost: 1000, type: 'cure', value: 1.0 },
   'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 3500, type: 'cure', value: 2.0 },
-  'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 3500, type: 'cure', value: 1.5 }
+  'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 3500, type: 'cure', value: 1.5 },
+  'HP Up': { name: 'HP Up', description: 'Permanently increases Max HP by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'Protein': { name: 'Protein', description: 'Permanently increases Attack by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'Calcium': { name: 'Calcium', description: 'Permanently increases Sp. Attack by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'Zinc': { name: 'Zinc', description: 'Permanently increases Sp. Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'Carbos': { name: 'Carbos', description: 'Permanently increases Speed by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 }
 };
 
 // Calculate stats based on level
-function calculateStats(base: PokemonData['baseStats'], level: number): Omit<PlayerPokemon, 'id' | 'pokemonId' | 'nickname' | 'level' | 'xp' | 'xpToNext' | 'currentHp' | 'moves'> {
+function calculateStats(
+  base: PokemonData['baseStats'],
+  level: number,
+  hpUp = 0,
+  protein = 0,
+  iron = 0,
+  calcium = 0,
+  zinc = 0,
+  carbos = 0
+): Omit<PlayerPokemon, 'id' | 'pokemonId' | 'nickname' | 'level' | 'xp' | 'xpToNext' | 'currentHp' | 'moves'> {
   return {
-    maxHp: Math.floor((2 * base.hp) * level / 100) + level + 10,
-    attack: Math.floor((2 * base.attack) * level / 100) + 5,
-    defense: Math.floor((2 * base.defense) * level / 100) + 5,
-    spAttack: Math.floor((2 * base.spAttack) * level / 100) + 5,
-    spDefense: Math.floor((2 * base.spDefense) * level / 100) + 5,
-    speed: Math.floor((2 * base.speed) * level / 100) + 5,
+    maxHp: Math.floor((2 * base.hp) * level / 100) + level + 10 + (hpUp * 2),
+    attack: Math.floor((2 * base.attack) * level / 100) + 5 + (protein * 2),
+    defense: Math.floor((2 * base.defense) * level / 100) + 5 + (iron * 2),
+    spAttack: Math.floor((2 * base.spAttack) * level / 100) + 5 + (calcium * 2),
+    spDefense: Math.floor((2 * base.spDefense) * level / 100) + 5 + (zinc * 2),
+    speed: Math.floor((2 * base.speed) * level / 100) + 5 + (carbos * 2),
   };
 }
 
@@ -1796,6 +1817,57 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         status: null
       } : p));
       setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+    } else if (item.type === 'vitamin') {
+      if (itemName === 'HP Up') {
+        const current = poke.hpUpCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, newCount, poke.proteinCount, poke.ironCount, poke.calciumCount, poke.zincCount, poke.carbosCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+          ...p,
+          hpUpCount: newCount,
+          maxHp: stats.maxHp,
+          currentHp: Math.min(stats.maxHp, p.currentHp + 2)
+        } : p));
+      } else if (itemName === 'Protein') {
+        const current = poke.proteinCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, poke.hpUpCount, newCount, poke.ironCount, poke.calciumCount, poke.zincCount, poke.carbosCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? { ...p, proteinCount: newCount, attack: stats.attack } : p));
+      } else if (itemName === 'Iron') {
+        const current = poke.ironCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, poke.hpUpCount, poke.proteinCount, newCount, poke.calciumCount, poke.zincCount, poke.carbosCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? { ...p, ironCount: newCount, defense: stats.defense } : p));
+      } else if (itemName === 'Calcium') {
+        const current = poke.calciumCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, poke.hpUpCount, poke.proteinCount, poke.ironCount, newCount, poke.zincCount, poke.carbosCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? { ...p, calciumCount: newCount, spAttack: stats.spAttack } : p));
+      } else if (itemName === 'Zinc') {
+        const current = poke.zincCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, poke.hpUpCount, poke.proteinCount, poke.ironCount, poke.calciumCount, newCount, poke.carbosCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? { ...p, zincCount: newCount, spDefense: stats.spDefense } : p));
+      } else if (itemName === 'Carbos') {
+        const current = poke.carbosCount || 0;
+        if (current >= 10) return;
+        const newCount = current + 1;
+        const baseStats = getPokemonById(poke.pokemonId).baseStats;
+        const stats = calculateStats(baseStats, poke.level, poke.hpUpCount, poke.proteinCount, poke.ironCount, poke.calciumCount, poke.zincCount, newCount);
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? { ...p, carbosCount: newCount, speed: stats.speed } : p));
+      }
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+      sound.playLevelUp();
     }
   };
 

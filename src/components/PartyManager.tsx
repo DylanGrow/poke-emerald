@@ -68,7 +68,7 @@ export const PartyManager: React.FC = () => {
 
   // Get active items in bag that can be used outside battle
   const usableItems = Object.entries(bag)
-    .filter(([name, count]) => count > 0 && ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy'].includes(name))
+    .filter(([name, count]) => count > 0 && ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy', 'HP Up', 'Protein', 'Iron', 'Calcium', 'Zinc', 'Carbos'].includes(name))
     .map(([name, count]) => ({ name, count }));
 
   const activePoke = activeSlot !== null ? team[activeSlot] : null;
@@ -235,27 +235,45 @@ export const PartyManager: React.FC = () => {
                     <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-gray-400">
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>HP:</span>
-                        <span className="font-bold text-gray-200">{activePoke.currentHp} / {activePoke.maxHp}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.currentHp} / {activePoke.maxHp}
+                          {activePoke.hpUpCount && activePoke.hpUpCount > 0 ? ` (+${activePoke.hpUpCount * 2})` : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>Attack:</span>
-                        <span className="font-bold text-gray-200">{activePoke.attack}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.attack}
+                          {activePoke.proteinCount && activePoke.proteinCount > 0 ? ` (+${activePoke.proteinCount * 2})` : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>Defense:</span>
-                        <span className="font-bold text-gray-200">{activePoke.defense}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.defense}
+                          {activePoke.ironCount && activePoke.ironCount > 0 ? ` (+${activePoke.ironCount * 2})` : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>Sp. Atk:</span>
-                        <span className="font-bold text-gray-200">{activePoke.spAttack}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.spAttack}
+                          {activePoke.calciumCount && activePoke.calciumCount > 0 ? ` (+${activePoke.calciumCount * 2})` : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>Sp. Def:</span>
-                        <span className="font-bold text-gray-200">{activePoke.spDefense}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.spDefense}
+                          {activePoke.zincCount && activePoke.zincCount > 0 ? ` (+${activePoke.zincCount * 2})` : ''}
+                        </span>
                       </div>
                       <div className="flex justify-between border-b border-slate-900/50 pb-1">
                         <span>Speed:</span>
-                        <span className="font-bold text-gray-200">{activePoke.speed}</span>
+                        <span className="font-bold text-gray-200">
+                          {activePoke.speed}
+                          {activePoke.carbosCount && activePoke.carbosCount > 0 ? ` (+${activePoke.carbosCount * 2})` : ''}
+                        </span>
                       </div>
                     </div>
                   </div>
