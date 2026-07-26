@@ -160,32 +160,32 @@ const TYPE_EFFECTIVENESS: Record<string, Record<string, number>> = {
 };
 
 export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
-  'Poke Ball': { name: 'Poke Ball', description: 'Standard ball to catch wild Pokemon.', cost: 200, type: 'ball', value: 1.0 },
-  'Great Ball': { name: 'Great Ball', description: 'Higher catch rate than Poke Ball.', cost: 600, type: 'ball', value: 1.5 },
-  'Ultra Ball': { name: 'Ultra Ball', description: 'Excellent catch rate.', cost: 1200, type: 'ball', value: 2.0 },
-  'Master Ball': { name: 'Master Ball', description: 'Guarantees catching any wild Pokemon.', cost: 50000, type: 'ball', value: 1000 },
-  'Potion': { name: 'Potion', description: 'Restores 20 HP.', cost: 300, type: 'heal', value: 20 },
-  'Super Potion': { name: 'Super Potion', description: 'Restores 50 HP.', cost: 700, type: 'heal', value: 50 },
-  'Hyper Potion': { name: 'Hyper Potion', description: 'Restores 120 HP.', cost: 1200, type: 'heal', value: 120 },
-  'Revive': { name: 'Revive', description: 'Revives a fainted Pokemon with 50% HP.', cost: 1500, type: 'revive', value: 0.5 },
-  'Max Revive': { name: 'Max Revive', description: 'Revives a fainted Pokemon with 100% HP.', cost: 4000, type: 'revive', value: 1.0 },
-  'Full Heal': { name: 'Full Heal', description: 'Cures all status conditions (Sleep, Burn, Poison, Paralysis).', cost: 600, type: 'cure', value: 1.0 },
-  'Rare Candy': { name: 'Rare Candy', description: 'Instantly increases a Pokémon\'s level by 1.', cost: 1000, type: 'cure', value: 1.0 },
-  'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 3500, type: 'cure', value: 2.0 },
-  'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 3500, type: 'cure', value: 1.5 },
-  'HP Up': { name: 'HP Up', description: 'Permanently increases Max HP by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Protein': { name: 'Protein', description: 'Permanently increases Attack by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Calcium': { name: 'Calcium', description: 'Permanently increases Sp. Attack by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Zinc': { name: 'Zinc', description: 'Permanently increases Sp. Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Carbos': { name: 'Carbos', description: 'Permanently increases Speed by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'TM24 Thunderbolt': { name: 'TM24 Thunderbolt', description: 'Teaches Thunderbolt (Electric, 90 Power).', cost: 5000, type: 'tm', value: 24 },
-  'TM35 Flamethrower': { name: 'TM35 Flamethrower', description: 'Teaches Flamethrower (Fire, 90 Power).', cost: 5000, type: 'tm', value: 35 },
-  'TM13 Ice Beam': { name: 'TM13 Ice Beam', description: 'Teaches Ice Beam (Ice, 90 Power).', cost: 5000, type: 'tm', value: 13 },
-  'TM29 Psychic': { name: 'TM29 Psychic', description: 'Teaches Psychic (Psychic, 90 Power).', cost: 5000, type: 'tm', value: 29 },
-  'TM26 Earthquake': { name: 'TM26 Earthquake', description: 'Teaches Earthquake (Ground, 100 Power).', cost: 6000, type: 'tm', value: 26 },
-  'TM50 Overheat': { name: 'TM50 Overheat', description: 'Teaches Overheat (Fire, 130 Power).', cost: 8000, type: 'tm', value: 50 },
-  'TM02 Dragon Claw': { name: 'TM02 Dragon Claw', description: 'Teaches Dragon Claw (Dragon, 80 Power).', cost: 6000, type: 'tm', value: 2 }
+  'Poke Ball': { name: 'Poke Ball', description: 'Standard ball to catch wild Pokemon.', cost: 50, type: 'ball', value: 1.0 },
+  'Great Ball': { name: 'Great Ball', description: 'Higher catch rate than Poke Ball.', cost: 150, type: 'ball', value: 1.5 },
+  'Ultra Ball': { name: 'Ultra Ball', description: 'Excellent catch rate.', cost: 300, type: 'ball', value: 2.0 },
+  'Master Ball': { name: 'Master Ball', description: 'Guarantees catching any wild Pokemon.', cost: 5000, type: 'ball', value: 1000 },
+  'Potion': { name: 'Potion', description: 'Restores 20 HP.', cost: 50, type: 'heal', value: 20 },
+  'Super Potion': { name: 'Super Potion', description: 'Restores 50 HP.', cost: 100, type: 'heal', value: 50 },
+  'Hyper Potion': { name: 'Hyper Potion', description: 'Restores 120 HP.', cost: 250, type: 'heal', value: 120 },
+  'Revive': { name: 'Revive', description: 'Revives a fainted Pokemon with 50% HP.', cost: 200, type: 'revive', value: 0.5 },
+  'Max Revive': { name: 'Max Revive', description: 'Revives a fainted Pokemon with 100% HP.', cost: 500, type: 'revive', value: 1.0 },
+  'Full Heal': { name: 'Full Heal', description: 'Cures all status conditions (Sleep, Burn, Poison, Paralysis).', cost: 100, type: 'cure', value: 1.0 },
+  'Rare Candy': { name: 'Rare Candy', description: 'Instantly increases a Pokémon\'s level by 1.', cost: 100, type: 'cure', value: 1.0 },
+  'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 500, type: 'cure', value: 2.0 },
+  'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 500, type: 'cure', value: 1.5 },
+  'HP Up': { name: 'HP Up', description: 'Permanently increases Max HP by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'Protein': { name: 'Protein', description: 'Permanently increases Attack by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'Calcium': { name: 'Calcium', description: 'Permanently increases Sp. Attack by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'Zinc': { name: 'Zinc', description: 'Permanently increases Sp. Defense by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'Carbos': { name: 'Carbos', description: 'Permanently increases Speed by 2 (Max 10).', cost: 1000, type: 'vitamin', value: 2.0 },
+  'TM24 Thunderbolt': { name: 'TM24 Thunderbolt', description: 'Teaches Thunderbolt (Electric, 90 Power).', cost: 500, type: 'tm', value: 24 },
+  'TM35 Flamethrower': { name: 'TM35 Flamethrower', description: 'Teaches Flamethrower (Fire, 90 Power).', cost: 500, type: 'tm', value: 35 },
+  'TM13 Ice Beam': { name: 'TM13 Ice Beam', description: 'Teaches Ice Beam (Ice, 90 Power).', cost: 500, type: 'tm', value: 13 },
+  'TM29 Psychic': { name: 'TM29 Psychic', description: 'Teaches Psychic (Psychic, 90 Power).', cost: 500, type: 'tm', value: 29 },
+  'TM26 Earthquake': { name: 'TM26 Earthquake', description: 'Teaches Earthquake (Ground, 100 Power).', cost: 600, type: 'tm', value: 26 },
+  'TM50 Overheat': { name: 'TM50 Overheat', description: 'Teaches Overheat (Fire, 130 Power).', cost: 800, type: 'tm', value: 50 },
+  'TM02 Dragon Claw': { name: 'TM02 Dragon Claw', description: 'Teaches Dragon Claw (Dragon, 80 Power).', cost: 600, type: 'tm', value: 2 }
 };
 
 export const TM_MOVES: Record<string, Move> = {
@@ -306,16 +306,19 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [badgesDefeated, setBadgesDefeated] = useState<number[]>([]);
   const [beatenTrainers, setBeatenTrainers] = useState<string[]>([]);
   const [eliteDefeatedCount, setEliteDefeatedCount] = useState<number>(0);
-  const [money, setMoney] = useState<number>(3000);
+  const [money, setMoney] = useState<number>(35000);
   const [bag, setBag] = useState<Record<string, number>>({
-    'Poke Ball': 15,
-    'Great Ball': 5,
-    'Ultra Ball': 1,
-    'Master Ball': 0,
-    'Potion': 8,
-    'Super Potion': 2,
-    'Hyper Potion': 0,
-    'Revive': 2
+    'Poke Ball': 30,
+    'Great Ball': 10,
+    'Ultra Ball': 5,
+    'Master Ball': 1,
+    'Potion': 20,
+    'Super Potion': 10,
+    'Hyper Potion': 2,
+    'Revive': 5,
+    'Rare Candy': 10,
+    'Lucky Charm': 1,
+    'Catch Charm': 1
   });
   const [activeIsland, setActiveIsland] = useState<number>(1);
   const [currentLocation, setCurrentLocation] = useState<string>('Littleroot Town');
