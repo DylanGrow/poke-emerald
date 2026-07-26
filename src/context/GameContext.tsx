@@ -128,6 +128,7 @@ interface GameContextType {
   hatching: { eggId: string; pokemonId: number; name: string } | null;
   setHatching: (val: { eggId: string; pokemonId: number; name: string } | null) => void;
   finishHatching: (nickname: string) => void;
+  useItemOutsideBattle: (itemName: string, teamIndex: number) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -162,7 +163,10 @@ export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
   'Hyper Potion': { name: 'Hyper Potion', description: 'Restores 120 HP.', cost: 1200, type: 'heal', value: 120 },
   'Revive': { name: 'Revive', description: 'Revives a fainted Pokemon with 50% HP.', cost: 1500, type: 'revive', value: 0.5 },
   'Max Revive': { name: 'Max Revive', description: 'Revives a fainted Pokemon with 100% HP.', cost: 4000, type: 'revive', value: 1.0 },
-  'Full Heal': { name: 'Full Heal', description: 'Cures all status conditions (Sleep, Burn, Poison, Paralysis).', cost: 600, type: 'cure', value: 1.0 }
+  'Full Heal': { name: 'Full Heal', description: 'Cures all status conditions (Sleep, Burn, Poison, Paralysis).', cost: 600, type: 'cure', value: 1.0 },
+  'Rare Candy': { name: 'Rare Candy', description: 'Instantly increases a Pokémon\'s level by 1.', cost: 1000, type: 'cure', value: 1.0 },
+  'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 3500, type: 'cure', value: 2.0 },
+  'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 3500, type: 'cure', value: 1.5 }
 };
 
 // Calculate stats based on level
@@ -1098,6 +1102,10 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      if (bag['Lucky Charm'] && bag['Lucky Charm'] > 0) {
+        xpEarned *= 2.0;
+      }
+
       setMoney(m => m + prizeMoney);
 
       // Award XP to all healthy team members (100% to active, 45% Exp. Share to others)
@@ -1232,6 +1240,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (oActive.status === 'SLP') {
         catchRate *= 2.0;
       } else if (oActive.status && oActive.status !== null) {
+        catchRate *= 1.5;
+      }
+      if (bag['Catch Charm'] && bag['Catch Charm'] > 0) {
         catchRate *= 1.5;
       }
       const success = item.name === 'Master Ball' || Math.random() < catchRate;
@@ -1689,9 +1700,108 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setHatching(null);
   };
 
+  const useItemOutsideBattle = (itemName: string, teamIndex: number) => {
+    const count = bag[itemName] || 0;
+    if (count <= 0) return;
+
+    const item = ITEMS[itemName];
+    if (!item) return;
+
+    const poke = team[teamIndex];
+    if (!poke || poke.isEgg) return;
+
+    sound.playSelect();
+
+    if (itemName === 'Rare Candy') {
+      if (poke.level >= 100) return;
+      const newLvl = poke.level + 1;
+      const baseStats = getPokemonById(poke.pokemonId).baseStats;
+      const stats = calculateStats(baseStats, newLvl);
+
+      let currentMoves = [...poke.moves];
+      const data = getPokemonById(poke.pokemonId);
+      const newMoves = data.moves.filter(m => m.level === newLvl);
+      newMoves.forEach(unlockedMove => {
+        if (!currentMoves.some(cm => cm.name === unlockedMove.name)) {
+          if (currentMoves.length < 4) {
+            currentMoves.push(unlockedMove);
+          } else {
+            setPendingMoveLearn({
+              pokemonId: poke.id,
+              move: unlockedMove
+            });
+          }
+        }
+      });
+
+      let finalPokemonId = poke.pokemonId;
+      let finalNickname = poke.nickname;
+      const pokeData = getPokemonById(poke.pokemonId);
+      if (pokeData.evolutionId && pokeData.evolutionLevel && newLvl >= pokeData.evolutionLevel) {
+        finalPokemonId = pokeData.evolutionId;
+        const evolvedData = getPokemonById(finalPokemonId);
+        if (poke.nickname === pokeData.name) {
+          finalNickname = evolvedData.name;
+        }
+        setEvolution({
+          nickname: poke.nickname,
+          fromName: pokeData.name,
+          toName: evolvedData.name,
+          fromId: poke.pokemonId,
+          toId: finalPokemonId
+        });
+      }
+
+      setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+        ...p,
+        level: newLvl,
+        xp: Math.floor(Math.pow(newLvl, 3) * 0.8),
+        xpToNext: Math.floor(Math.pow(newLvl + 1, 3) * 0.8),
+        maxHp: stats.maxHp,
+        currentHp: stats.maxHp,
+        attack: stats.attack,
+        defense: stats.defense,
+        spAttack: stats.spAttack,
+        spDefense: stats.spDefense,
+        speed: stats.speed,
+        moves: currentMoves,
+        pokemonId: finalPokemonId,
+        nickname: finalNickname
+      } : p));
+
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+      sound.playLevelUp();
+    } else if (item.type === 'heal') {
+      if (poke.currentHp <= 0) return;
+      if (poke.currentHp >= poke.maxHp) return;
+
+      setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+        ...p,
+        currentHp: Math.min(p.maxHp, p.currentHp + item.value)
+      } : p));
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+    } else if (item.type === 'revive') {
+      if (poke.currentHp > 0) return;
+
+      setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+        ...p,
+        currentHp: Math.floor(p.maxHp * item.value)
+      } : p));
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+    } else if (item.type === 'cure') {
+      if (!poke.status) return;
+
+      setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+        ...p,
+        status: null
+      } : p));
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+    }
+  };
+
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching, useItemOutsideBattle,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}
