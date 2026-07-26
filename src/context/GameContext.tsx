@@ -402,10 +402,12 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const selectStarter = (pokemonId: number) => {
-    const starter = createPlayerPokemon(pokemonId, 5);
-    setTeam([starter]);
+    const restIds = [252, 255, 258, 1, 4, 7].filter(id => id !== pokemonId);
+    const starterIds = [pokemonId, ...restIds];
+    const starterTeam = starterIds.map(id => createPlayerPokemon(id, 5));
+    setTeam(starterTeam);
     setPcBox([]);
-    setPokedexCaught([pokemonId]);
+    setPokedexCaught([252, 255, 258, 1, 4, 7]);
     sound.playLevelUp();
   };
 
