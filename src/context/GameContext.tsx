@@ -73,7 +73,7 @@ export interface BagItem {
   count: number;
   description: string;
   cost: number;
-  type: 'ball' | 'heal' | 'revive' | 'cure' | 'vitamin';
+  type: 'ball' | 'heal' | 'revive' | 'cure' | 'vitamin' | 'tm';
   value: number; // heals hp, multiplier, etc.
 }
 
@@ -178,7 +178,24 @@ export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
   'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
   'Calcium': { name: 'Calcium', description: 'Permanently increases Sp. Attack by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
   'Zinc': { name: 'Zinc', description: 'Permanently increases Sp. Defense by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
-  'Carbos': { name: 'Carbos', description: 'Permanently increases Speed by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 }
+  'Carbos': { name: 'Carbos', description: 'Permanently increases Speed by 2 (Max 10).', cost: 9800, type: 'vitamin', value: 2.0 },
+  'TM24 Thunderbolt': { name: 'TM24 Thunderbolt', description: 'Teaches Thunderbolt (Electric, 90 Power).', cost: 5000, type: 'tm', value: 24 },
+  'TM35 Flamethrower': { name: 'TM35 Flamethrower', description: 'Teaches Flamethrower (Fire, 90 Power).', cost: 5000, type: 'tm', value: 35 },
+  'TM13 Ice Beam': { name: 'TM13 Ice Beam', description: 'Teaches Ice Beam (Ice, 90 Power).', cost: 5000, type: 'tm', value: 13 },
+  'TM29 Psychic': { name: 'TM29 Psychic', description: 'Teaches Psychic (Psychic, 90 Power).', cost: 5000, type: 'tm', value: 29 },
+  'TM26 Earthquake': { name: 'TM26 Earthquake', description: 'Teaches Earthquake (Ground, 100 Power).', cost: 6000, type: 'tm', value: 26 },
+  'TM50 Overheat': { name: 'TM50 Overheat', description: 'Teaches Overheat (Fire, 130 Power).', cost: 8000, type: 'tm', value: 50 },
+  'TM02 Dragon Claw': { name: 'TM02 Dragon Claw', description: 'Teaches Dragon Claw (Dragon, 80 Power).', cost: 6000, type: 'tm', value: 2 }
+};
+
+export const TM_MOVES: Record<string, Move> = {
+  'TM24 Thunderbolt': { name: 'Thunderbolt', type: 'Electric', power: 90, accuracy: 100, pp: 15, level: 1, currentPp: 15 },
+  'TM35 Flamethrower': { name: 'TM35 Flamethrower', type: 'Fire', power: 90, accuracy: 100, pp: 15, level: 1, currentPp: 15 },
+  'TM13 Ice Beam': { name: 'TM13 Ice Beam', type: 'Ice', power: 90, accuracy: 100, pp: 10, level: 1, currentPp: 10 },
+  'TM29 Psychic': { name: 'TM29 Psychic', type: 'Psychic', power: 90, accuracy: 100, pp: 10, level: 1, currentPp: 10 },
+  'TM26 Earthquake': { name: 'TM26 Earthquake', type: 'Ground', power: 100, accuracy: 100, pp: 10, level: 1, currentPp: 10 },
+  'TM50 Overheat': { name: 'TM50 Overheat', type: 'Fire', power: 130, accuracy: 90, pp: 5, level: 1, currentPp: 5 },
+  'TM02 Dragon Claw': { name: 'TM02 Dragon Claw', type: 'Dragon', power: 80, accuracy: 100, pp: 15, level: 1, currentPp: 15 }
 };
 
 // Calculate stats based on level
@@ -1868,6 +1885,27 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
       sound.playLevelUp();
+    } else if (item.type === 'tm') {
+      const move = TM_MOVES[itemName];
+      if (!move) return;
+
+      if (poke.moves.some(m => m.name === move.name)) return;
+
+      sound.playSelect();
+      setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+
+      if (poke.moves.length < 4) {
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+          ...p,
+          moves: [...p.moves, { ...move, currentPp: move.pp }]
+        } : p));
+        sound.playLevelUp();
+      } else {
+        setPendingMoveLearn({
+          pokemonId: poke.id,
+          move: { ...move, currentPp: move.pp }
+        });
+      }
     }
   };
 

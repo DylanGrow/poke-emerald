@@ -68,7 +68,10 @@ export const PartyManager: React.FC = () => {
 
   // Get active items in bag that can be used outside battle
   const usableItems = Object.entries(bag)
-    .filter(([name, count]) => count > 0 && ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy', 'HP Up', 'Protein', 'Iron', 'Calcium', 'Zinc', 'Carbos'].includes(name))
+    .filter(([name, count]) => count > 0 && (
+      ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy', 'HP Up', 'Protein', 'Iron', 'Calcium', 'Zinc', 'Carbos'].includes(name) ||
+      name.startsWith('TM')
+    ))
     .map(([name, count]) => ({ name, count }));
 
   const activePoke = activeSlot !== null ? team[activeSlot] : null;
