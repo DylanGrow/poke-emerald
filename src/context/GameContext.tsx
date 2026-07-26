@@ -111,6 +111,8 @@ interface GameContextType {
   renamePokemon: (id: string, newName: string) => void;
   isBiking: boolean;
   toggleBiking: () => void;
+  showEndingCredits: boolean;
+  setShowEndingCredits: (val: boolean) => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -268,6 +270,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [evolution, setEvolution] = useState<{ nickname: string; fromName: string; toName: string; fromId: number; toId: number } | null>(null);
   const [pendingNickname, setPendingNickname] = useState<{ id: string; name: string } | null>(null);
   const [isBiking, setIsBiking] = useState<boolean>(false);
+  const [showEndingCredits, setShowEndingCredits] = useState<boolean>(false);
 
   // Initialize game state (starters)
   useEffect(() => {
@@ -1113,7 +1116,13 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return [...prev, currentBattle.gymId!];
         });
       } else if (currentBattle.type === 'elite' && currentBattle.eliteId) {
-        setEliteDefeatedCount(c => c + 1);
+        setEliteDefeatedCount(c => {
+          const nextVal = c + 1;
+          if (nextVal === 16) {
+            setShowEndingCredits(true);
+          }
+          return nextVal;
+        });
       }
 
       // Finish battle
@@ -1473,7 +1482,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}

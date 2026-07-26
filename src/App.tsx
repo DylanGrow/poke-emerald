@@ -34,7 +34,9 @@ const Dashboard: React.FC = () => {
     pendingMoveLearn,
     learnPendingMove,
     selectStarter,
-    isBiking
+    isBiking,
+    showEndingCredits,
+    setShowEndingCredits
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits'>('map');
@@ -395,6 +397,15 @@ const Dashboard: React.FC = () => {
           id={pendingNickname.id}
           defaultName={pendingNickname.name}
           onClose={() => setPendingNickname(null)}
+        />
+      )}
+
+      {showEndingCredits && (
+        <CreditsScreen
+          onClose={() => {
+            setShowEndingCredits(false);
+            setActiveTab('map');
+          }}
         />
       )}
 
