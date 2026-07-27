@@ -408,9 +408,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const restIds = [252, 255, 258, 1, 4, 7].filter(id => id !== pokemonId);
     const starterIds = [pokemonId, ...restIds];
     const starterTeam = starterIds.map(id => createPlayerPokemon(id, 5, undefined, !!bag['Shiny Charm']));
+    
+    // Starting PC storage companions (Pikachu, Eevee, Kyogre, Groudon, Rayquaza)
+    const pcIds = [25, 133, 382, 383, 384];
+    const pcTeam = pcIds.map(id => createPlayerPokemon(id, 5, undefined, !!bag['Shiny Charm']));
+    
     setTeam(starterTeam);
-    setPcBox([]);
-    setPokedexCaught([252, 255, 258, 1, 4, 7]);
+    setPcBox(pcTeam);
+    setPokedexCaught([252, 255, 258, 1, 4, 7, ...pcIds]);
     sound.playLevelUp();
   };
 
