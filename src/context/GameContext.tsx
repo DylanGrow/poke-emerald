@@ -173,6 +173,7 @@ export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
   'Rare Candy': { name: 'Rare Candy', description: 'Instantly increases a Pokémon\'s level by 1.', cost: 10, type: 'cure', value: 1.0 },
   'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 50, type: 'cure', value: 2.0 },
   'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 50, type: 'cure', value: 1.5 },
+  'Shiny Charm': { name: 'Shiny Charm', description: 'Increases wild shiny encounter rates by 7.5x (to 5.0%) when kept in bag.', cost: 50, type: 'cure', value: 7.5 },
   'HP Up': { name: 'HP Up', description: 'Permanently increases Max HP by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
   'Protein': { name: 'Protein', description: 'Permanently increases Attack by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
   'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
@@ -219,17 +220,17 @@ function calculateStats(
   };
 }
 
-export function createPlayerPokemon(pokemonId: number, level: number, forcedShiny?: boolean): PlayerPokemon {
+export function createPlayerPokemon(pokemonId: number, level: number, forcedShiny?: boolean, hasShinyCharm?: boolean): PlayerPokemon {
   const data = getPokemonById(pokemonId);
   const stats = calculateStats(data.baseStats, level);
   const xp = Math.floor(Math.pow(level, 3) * 0.8);
   const xpToNext = Math.floor(Math.pow(level + 1, 3) * 0.8);
   
-  // Assign available moves up to this level (max 4 moves, default to latest unlocked)
   const availableMoves = data.moves.filter(m => m.level <= level);
   const moves = availableMoves.slice(-4).map(m => ({ ...m, currentPp: m.currentPp !== undefined ? m.currentPp : m.pp }));
   
-  const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < 0.0067; // 1 in 150 shiny rate (0.67%)
+  const shinyRate = hasShinyCharm ? 0.05 : 0.0067;
+  const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < shinyRate;
   
   return {
     id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -245,12 +246,13 @@ export function createPlayerPokemon(pokemonId: number, level: number, forcedShin
   };
 }
 
-// Convert a DB PokemonData to BattleOpponent
-function toBattleOpponent(data: PokemonData, level: number, forcedShiny?: boolean): BattleOpponent {
+function toBattleOpponent(data: PokemonData, level: number, forcedShiny?: boolean, hasShinyCharm?: boolean): BattleOpponent {
   const stats = calculateStats(data.baseStats, level);
   const availableMoves = data.moves.filter(m => m.level <= level);
   const moves = availableMoves.slice(-4).map(m => ({ ...m, currentPp: m.pp }));
-  const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < 0.0067; // 1 in 150 shiny rate (0.67%)
+  
+  const shinyRate = hasShinyCharm ? 0.05 : 0.0067;
+  const isShiny = forcedShiny !== undefined ? forcedShiny : Math.random() < shinyRate;
 
   return {
     name: data.name,
@@ -318,7 +320,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     'Revive': 5,
     'Rare Candy': 10,
     'Lucky Charm': 1,
-    'Catch Charm': 1
+    'Catch Charm': 1,
+    'Shiny Charm': 1
   });
   const [activeIsland, setActiveIsland] = useState<number>(1);
   const [currentLocation, setCurrentLocation] = useState<string>('Littleroot Town');
@@ -404,7 +407,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const selectStarter = (pokemonId: number) => {
     const restIds = [252, 255, 258, 1, 4, 7].filter(id => id !== pokemonId);
     const starterIds = [pokemonId, ...restIds];
-    const starterTeam = starterIds.map(id => createPlayerPokemon(id, 5));
+    const starterTeam = starterIds.map(id => createPlayerPokemon(id, 5, undefined, !!bag['Shiny Charm']));
     setTeam(starterTeam);
     setPcBox([]);
     setPokedexCaught([252, 255, 258, 1, 4, 7]);
@@ -549,7 +552,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    const opponent = toBattleOpponent(wildData, lvl);
+    const opponent = toBattleOpponent(wildData, lvl, undefined, !!bag['Shiny Charm']);
 
     setBattle({
       type: 'wild',
@@ -568,7 +571,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const oppTeam = trainer.roster.map(gp => {
       const data = getPokemonById(gp.pokemonId);
-      return toBattleOpponent(data, gp.level);
+      return toBattleOpponent(data, gp.level, undefined, !!bag['Shiny Charm']);
     });
 
     setBattle({
@@ -593,7 +596,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const oppTeam = gym.roster.map(gp => {
       const data = getPokemonById(gp.pokemonId);
-      return toBattleOpponent(data, gp.level);
+      return toBattleOpponent(data, gp.level, undefined, !!bag['Shiny Charm']);
     });
 
     setBattle({
@@ -616,7 +619,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const member = ELITE_16[nextEliteIndex];
     const oppTeam = member.roster.map(gp => {
       const data = getPokemonById(gp.pokemonId);
-      return toBattleOpponent(data, gp.level);
+      return toBattleOpponent(data, gp.level, undefined, !!bag['Shiny Charm']);
     });
 
     setBattle({
@@ -1295,7 +1298,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sound.playCatchSuccess();
           
           // Add to team if space, else PC/storage (simplified: auto-add to team if <6)
-          const newCaught = createPlayerPokemon(oActive.pokemonId, oActive.level, oActive.shiny);
+          const newCaught = createPlayerPokemon(oActive.pokemonId, oActive.level, oActive.shiny, !!bag['Shiny Charm']);
           
           if (team.length < 6) {
             setTeam(prev => [...prev, newCaught]);
