@@ -32,7 +32,8 @@ export const MapScreen: React.FC = () => {
     setLocation,
     battle,
     isBiking,
-    toggleBiking
+    toggleBiking,
+    weather
   } = useGame();
 
   const [playerPos, setPlayerPos] = useState<{ row: number; col: number }>({ row: 2, col: 2 });
@@ -311,7 +312,12 @@ export const MapScreen: React.FC = () => {
             <MapPin className="w-5 h-5 text-emerald-400" />
             {islandNames[activeIsland]}
           </h2>
-          <span className="text-xs font-mono text-gray-400">Current Node: {currentLocation}</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-xs font-mono text-gray-400">Current Node: {currentLocation}</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-emerald-400 font-bold uppercase tracking-wider">
+              {weather === 'Sunny' ? '☀️ Sunny' : weather === 'Rainy' ? '🌧️ Rainy' : weather === 'Sandstorm' ? '🌪️ Sandstorm' : weather === 'Snow' ? '❄️ Hail' : '🍃 Normal'}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-3 flex-wrap md:flex-nowrap justify-center">

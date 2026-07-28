@@ -66,6 +66,7 @@ export interface BattleState {
   logs: string[];
   isCatching: boolean;
   catchSuccess?: boolean;
+  weather?: 'Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow';
 }
 
 export interface BagItem {
@@ -122,6 +123,8 @@ interface GameContextType {
   toggleBiking: () => void;
   showEndingCredits: boolean;
   setShowEndingCredits: (val: boolean) => void;
+  weather: 'Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow';
+  setWeather: (val: 'Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow') => void;
   daycare: {
     parentA: PlayerPokemon | null;
     parentB: PlayerPokemon | null;
@@ -327,6 +330,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     'Max Elixir': 5
   });
   const [activeIsland, setActiveIsland] = useState<number>(1);
+  const [weather, setWeather] = useState<'Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow'>('Normal');
   const [currentLocation, setCurrentLocation] = useState<string>('Littleroot Town');
   const [battle, setBattle] = useState<BattleState | null>(null);
   const [mute, setMute] = useState<boolean>(false);
@@ -453,11 +457,20 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setActiveIsland(islandNum);
     const islandTowns = ['', 'Littleroot Town', 'Slateport City', 'Lilycove City', 'Sootopolis City'];
     setCurrentLocation(islandTowns[islandNum] || 'Littleroot Town');
+    const islandWeathers: ('Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow')[] = ['Normal', 'Sunny', 'Rainy', 'Sandstorm', 'Snow'];
+    setWeather(islandWeathers[islandNum] || 'Normal');
   };
 
   const setLocation = (loc: string) => {
     sound.playSelect();
     setCurrentLocation(loc);
+
+    // Weather random changes as you walk (10% chance per step)
+    if (Math.random() < 0.10) {
+      const weathers: ('Normal' | 'Sunny' | 'Rainy' | 'Sandstorm' | 'Snow')[] = ['Normal', 'Sunny', 'Rainy', 'Sandstorm', 'Snow'];
+      const nextWeather = weathers[Math.floor(Math.random() * weathers.length)];
+      setWeather(nextWeather);
+    }
 
     // Daycare egg generation steps tracking
     setDaycare(prev => {
@@ -568,7 +581,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       opponentActiveIndex: 0,
       playerActiveIndex: getFirstHealthyPokemonIndex(),
       logs: [`A wild ${opponent.name} (Lv. ${opponent.level}) appeared!`],
-      isCatching: false
+      isCatching: false,
+      weather: weather
     });
   };
 
@@ -583,8 +597,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     setBattle({
-      type: 'trainer',
-      trainerId,
+      type: 'whiteout' as any, // fallback or base type check
       opponentTeam: oppTeam,
       opponentActiveIndex: 0,
       playerActiveIndex: getFirstHealthyPokemonIndex(),
@@ -593,8 +606,9 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         `"${trainer.dialogueBefore}"`,
         `${trainer.title} ${trainer.name} sent out ${oppTeam[0].name}!`
       ],
-      isCatching: false
-    });
+      isCatching: false,
+      weather: weather
+    } as any);
   };
 
   const startGymBattle = (gymId: number) => {
@@ -614,7 +628,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       opponentActiveIndex: 0,
       playerActiveIndex: getFirstHealthyPokemonIndex(),
       logs: [`Gym Leader ${gym.leader} challenges you to a battle!`, `${gym.leader} sent out ${oppTeam[0].name}!`],
-      isCatching: false
+      isCatching: false,
+      weather: weather
     });
   };
 
@@ -641,7 +656,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         `"${member.dialogue}"`,
         `${member.name} sent out ${oppTeam[0].name}!`
       ],
-      isCatching: false
+      isCatching: false,
+      weather: weather
     });
   };
 
@@ -729,7 +745,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Burn half physical attack check
       const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(oMove.type);
-      let oDmg = calculateOpponentDamage(oActive, pActive, oMove);
+      let oDmg = calculateOpponentDamage(oActive, pActive, oMove, prev.weather);
       if (isPhysical && oStatus === 'BRN') {
         oDmg.damage = Math.max(1, Math.floor(oDmg.damage * 0.5));
       }
@@ -848,7 +864,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(pMove.type);
-        let pDmg = calculateDamage(pActive, oActive, pMove);
+        let pDmg = calculateDamage(pActive, oActive, pMove, prev.weather);
         if (isPhysical && pStatus === 'BRN') {
           pDmg.damage = Math.max(1, Math.floor(pDmg.damage * 0.5));
         }
@@ -910,7 +926,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(oMove.type);
-        let oDmg = calculateOpponentDamage(oActive, pActive, oMove);
+        let oDmg = calculateOpponentDamage(oActive, pActive, oMove, prev.weather);
         if (isPhysical && oStatus === 'BRN') {
           oDmg.damage = Math.max(1, Math.floor(oDmg.damage * 0.5));
         }
@@ -978,6 +994,34 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Sandstorm/Snow chip damage ticks
+      if (prev.weather === 'Sandstorm' || prev.weather === 'Snow') {
+        const pTypes = getPokemonById(pActive.pokemonId).types;
+        const oTypes = oActive.types;
+        const sandImmune = (types: string[]) => types.some(t => ['Rock', 'Ground', 'Steel'].includes(t));
+        const snowImmune = (types: string[]) => types.some(t => t === 'Ice');
+        
+        if (oppHp > 0) {
+          const isImmune = prev.weather === 'Sandstorm' ? sandImmune(oTypes) : snowImmune(oTypes);
+          if (!isImmune) {
+            const chip = Math.max(1, Math.floor(oActive.maxHp / 16));
+            oppHp = Math.max(0, oppHp - chip);
+            logs.push(`${oActive.name} takes ${chip} damage from the ${prev.weather.toLowerCase()}!`);
+            if (oppHp <= 0) logs.push(`${oActive.name} fainted!`);
+          }
+        }
+        
+        if (plHp > 0) {
+          const isImmune = prev.weather === 'Sandstorm' ? sandImmune(pTypes) : snowImmune(pTypes);
+          if (!isImmune) {
+            const chip = Math.max(1, Math.floor(pActive.maxHp / 16));
+            plHp = Math.max(0, plHp - chip);
+            logs.push(`${pActive.nickname} takes ${chip} damage from the ${prev.weather.toLowerCase()}!`);
+            if (plHp <= 0) logs.push(`${pActive.nickname} fainted!`);
+          }
+        }
+      }
+
       // Save state adjustments
       const updatedTeam = [...team];
       const updatedMoves = pActive.moves.map((m, idx) => 
@@ -1029,13 +1073,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
-  const calculateDamage = (attacker: PlayerPokemon, defender: BattleOpponent, move: Move) => {
+  const calculateDamage = (attacker: PlayerPokemon, defender: BattleOpponent, move: Move, weather?: string) => {
     const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(move.type);
     const A = isPhysical ? attacker.attack : attacker.spAttack;
     const D = isPhysical ? defender.defense : defender.spDefense;
     
     let modifier = 1.0;
     let log = '';
+
+    // Weather modifiers
+    if (weather === 'Rainy') {
+      if (move.type === 'Water') modifier *= 1.5;
+      if (move.type === 'Fire') modifier *= 0.5;
+    } else if (weather === 'Sunny') {
+      if (move.type === 'Fire') modifier *= 1.5;
+      if (move.type === 'Water') modifier *= 0.5;
+    } else if (weather === 'Snow') {
+      if (move.type === 'Ice') modifier *= 1.5;
+    } else if (weather === 'Sandstorm') {
+      const defTypes = getPokemonById(defender.pokemonId).types;
+      if (defTypes.some(t => ['Rock', 'Ground', 'Steel'].includes(t))) {
+        modifier *= 0.8;
+      }
+    }
     
     let typeEff = 1.0;
     defender.types.forEach(t => {
@@ -1069,13 +1129,29 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { damage, log };
   };
 
-  const calculateOpponentDamage = (attacker: BattleOpponent, defender: PlayerPokemon, move: Move) => {
+  const calculateOpponentDamage = (attacker: BattleOpponent, defender: PlayerPokemon, move: Move, weather?: string) => {
     const isPhysical = ['Normal', 'Fighting', 'Flying', 'Poison', 'Ground', 'Rock', 'Bug', 'Ghost', 'Steel'].includes(move.type);
     const A = isPhysical ? attacker.attack : attacker.spAttack;
     const D = isPhysical ? defender.defense : defender.spDefense;
     
     let modifier = 1.0;
     let log = '';
+
+    // Weather modifiers
+    if (weather === 'Rainy') {
+      if (move.type === 'Water') modifier *= 1.5;
+      if (move.type === 'Fire') modifier *= 0.5;
+    } else if (weather === 'Sunny') {
+      if (move.type === 'Fire') modifier *= 1.5;
+      if (move.type === 'Water') modifier *= 0.5;
+    } else if (weather === 'Snow') {
+      if (move.type === 'Ice') modifier *= 1.5;
+    } else if (weather === 'Sandstorm') {
+      const defTypes = getPokemonById(defender.pokemonId).types;
+      if (defTypes.some(t => ['Rock', 'Ground', 'Steel'].includes(t))) {
+        modifier *= 0.8;
+      }
+    }
 
     const defTypes = getPokemonById(defender.pokemonId).types;
     let typeEff = 1.0;
@@ -1941,7 +2017,7 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching, useItemOutsideBattle, dumpCredits,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching, useItemOutsideBattle, dumpCredits, weather, setWeather,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}

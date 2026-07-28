@@ -457,6 +457,12 @@ export const BattleScreen: React.FC = () => {
       <div className="relative w-full h-80 bg-gradient-to-b from-slate-900/60 to-slate-950/90 rounded-xl border border-gray-800 p-4 flex flex-col justify-between overflow-hidden shadow-inner">
         <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
         
+        {battle.weather && battle.weather !== 'Normal' && (
+          <span className="absolute top-3 left-3 z-[25] px-2 py-0.5 rounded bg-slate-900/80 border border-slate-800 text-[9px] font-mono font-bold tracking-wider text-emerald-400 uppercase">
+            {battle.weather === 'Sunny' ? '☀️ Harsh Sun' : battle.weather === 'Rainy' ? '🌧️ Heavy Rain' : battle.weather === 'Sandstorm' ? '🌪️ Sandstorm' : '❄️ Hail/Snow'}
+          </span>
+        )}
+
         {/* GBA Animation Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
           @keyframes slide-out-bar {
@@ -489,7 +495,73 @@ export const BattleScreen: React.FC = () => {
             40% { transform: scale(1.2); opacity: 1; filter: brightness(2); }
             100% { transform: scale(1); opacity: 1; filter: brightness(1); }
           }
+          @keyframes rain-fall {
+            0% { transform: translateY(-20px) rotate(15deg); }
+            100% { transform: translateY(320px) rotate(15deg); }
+          }
+          @keyframes sand-drift {
+            0% { transform: translateX(120%) translateY(-20px); }
+            100% { transform: translateX(-120%) translateY(20px); }
+          }
+          @keyframes snow-fall {
+            0% { transform: translateY(-20px) translateX(0); }
+            50% { transform: translateY(160px) translateX(15px); }
+            100% { transform: translateY(320px) translateX(-15px); }
+          }
         `}} />
+
+        {/* Weather Particle Overlays */}
+        {battle.weather === 'Rainy' && (
+          <div className="absolute inset-0 z-[15] pointer-events-none overflow-hidden opacity-45">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="absolute w-[1px] h-5 bg-blue-400"
+                style={{
+                  left: `${(i * 7.7) % 100}%`,
+                  animation: `rain-fall ${0.6 + (i % 3) * 0.1}s linear infinite`,
+                  animationDelay: `${i * 45}ms`
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {battle.weather === 'Sunny' && (
+          <div className="absolute inset-0 z-[15] pointer-events-none overflow-hidden bg-amber-500/5 mix-blend-color-dodge transition-all animate-pulse" />
+        )}
+        {battle.weather === 'Sandstorm' && (
+          <div className="absolute inset-0 z-[15] pointer-events-none overflow-hidden opacity-30">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="absolute w-12 h-[1px] bg-amber-700/60 rounded"
+                style={{
+                  top: `${(i * 13) % 100}%`,
+                  animation: `sand-drift ${1.2 + (i % 3) * 0.2}s linear infinite`,
+                  animationDelay: `${i * 120}ms`
+                }}
+              />
+            ))}
+          </div>
+        )}
+        {battle.weather === 'Snow' && (
+          <div className="absolute inset-0 z-[15] pointer-events-none overflow-hidden opacity-40">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <div 
+                key={i} 
+                className="absolute text-[8px]"
+                style={{
+                  left: `${(i * 8.3) % 100}%`,
+                  top: `-10px`,
+                  animation: `snow-fall ${2.0 + (i % 3) * 0.4}s linear infinite`,
+                  animationDelay: `${i * 150}ms`
+                }}
+              >
+                ❄️
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Sweep intro cover overlay */}
         {introStage === 'sweep' && (
