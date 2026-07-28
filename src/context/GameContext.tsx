@@ -175,6 +175,7 @@ export const ITEMS: Record<string, Omit<BagItem, 'count'>> = {
   'Lucky Charm': { name: 'Lucky Charm', description: 'Doubles all EXP gained in battles when kept in bag.', cost: 50, type: 'cure', value: 2.0 },
   'Catch Charm': { name: 'Catch Charm', description: 'Increases all Poke Ball catch success rates by 50% when kept in bag.', cost: 50, type: 'cure', value: 1.5 },
   'Shiny Charm': { name: 'Shiny Charm', description: 'Increases wild shiny encounter rates by 7.5x (to 5.0%) when kept in bag.', cost: 50, type: 'cure', value: 7.5 },
+  'Max Elixir': { name: 'Max Elixir', description: 'Restores 100% PP to all moves of a Pokémon.', cost: 10, type: 'cure', value: 1.0 },
   'HP Up': { name: 'HP Up', description: 'Permanently increases Max HP by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
   'Protein': { name: 'Protein', description: 'Permanently increases Attack by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
   'Iron': { name: 'Iron', description: 'Permanently increases Defense by 2 (Max 10).', cost: 100, type: 'vitamin', value: 2.0 },
@@ -322,7 +323,8 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     'Rare Candy': 10,
     'Lucky Charm': 1,
     'Catch Charm': 1,
-    'Shiny Charm': 1
+    'Shiny Charm': 1,
+    'Max Elixir': 5
   });
   const [activeIsland, setActiveIsland] = useState<number>(1);
   const [currentLocation, setCurrentLocation] = useState<string>('Littleroot Town');
@@ -1841,6 +1843,15 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } : p));
       setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
     } else if (item.type === 'cure') {
+      if (itemName === 'Max Elixir') {
+        setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {
+          ...p,
+          moves: p.moves.map(m => ({ ...m, currentPp: m.pp }))
+        } : p));
+        setBag(prev => ({ ...prev, [itemName]: prev[itemName] - 1 }));
+        sound.playLevelUp();
+        return;
+      }
       if (!poke.status) return;
 
       setTeam(prev => prev.map((p, idx) => idx === teamIndex ? {

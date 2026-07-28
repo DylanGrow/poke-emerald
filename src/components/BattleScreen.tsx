@@ -60,6 +60,7 @@ export const BattleScreen: React.FC = () => {
   const [lastLogLength, setLastLogLength] = useState(0);
   const [introStage, setIntroStage] = useState<'sweep' | 'throw' | 'ready'>('sweep');
   const [activeEffect, setActiveEffect] = useState<{ type: string; side: 'player' | 'opponent' } | null>(null);
+  const [shinySpark, setShinySpark] = useState<{ player: boolean; opponent: boolean }>({ player: false, opponent: false });
 
   // Trigger battle transition sequence on mount
   useEffect(() => {
@@ -165,6 +166,22 @@ export const BattleScreen: React.FC = () => {
       setPrevOppHp(oppActive.currentHp);
     }
   }, [battle.opponentActiveIndex]);
+
+  useEffect(() => {
+    if (introStage === 'ready') {
+      const pShiny = playerActive?.shiny;
+      const oShiny = oppActive?.shiny;
+      if (pShiny || oShiny) {
+        setShinySpark({ player: !!pShiny, opponent: !!oShiny });
+        // Play levelup sound as sparkling chiptune jingle
+        sound.playLevelUp();
+        const timer = setTimeout(() => {
+          setShinySpark({ player: false, opponent: false });
+        }, 1500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [introStage, playerActive?.id, oppActive?.pokemonId]);
 
   // Handle battle damage animations
   useEffect(() => {
@@ -626,6 +643,13 @@ export const BattleScreen: React.FC = () => {
                   animating={battle.isCatching}
                   shiny={oppActive.shiny}
                 />
+                {shinySpark.opponent && (
+                  <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center animate-ping">
+                    <span className="text-xl text-yellow-400">✨</span>
+                    <span className="text-sm text-yellow-300 absolute -top-2 -left-2 animate-bounce">✨</span>
+                    <span className="text-sm text-yellow-300 absolute -bottom-2 -right-2 animate-bounce">✨</span>
+                  </div>
+                )}
                 {activeEffect?.side === 'opponent' && (
                   <MoveEffectOverlay type={activeEffect.type} />
                 )}
@@ -647,6 +671,13 @@ export const BattleScreen: React.FC = () => {
                   size={110}
                   shiny={playerActive.shiny}
                 />
+                {shinySpark.player && (
+                  <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center animate-ping">
+                    <span className="text-xl text-yellow-400">✨</span>
+                    <span className="text-sm text-yellow-300 absolute -top-2 -left-2 animate-bounce">✨</span>
+                    <span className="text-sm text-yellow-300 absolute -bottom-2 -right-2 animate-bounce">✨</span>
+                  </div>
+                )}
                 {activeEffect?.side === 'player' && (
                   <MoveEffectOverlay type={activeEffect.type} />
                 )}
@@ -767,7 +798,7 @@ export const BattleScreen: React.FC = () => {
               }`}
             >
               <LogOut className="w-5 h-5 text-rose-400" />
-              <span>RUN</span>
+              <span>RUN ({battle.type === 'wild' ? (playerActive.speed >= oppActive.level * 1.2 ? '100%' : '60%') : '0%'} ESCAPE)</span>
             </button>
           </>
         )}

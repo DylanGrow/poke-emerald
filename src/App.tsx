@@ -17,7 +17,7 @@ import { Daycare } from './components/Daycare';
 import { HatchOverlay } from './components/HatchOverlay';
 import { VirtualController } from './components/VirtualController';
 import { useGamepad } from './hooks/useGamepad';
-import { Volume2, VolumeX, Shield, Trophy, Sword, Film, Heart } from 'lucide-react';
+import { Volume2, VolumeX, Shield, Trophy, Sword, Film, Heart, Gamepad2 } from 'lucide-react';
 import { sound } from './utils/sound';
 
 const Dashboard: React.FC = () => {
@@ -43,6 +43,7 @@ const Dashboard: React.FC = () => {
   } = useGame();
 
   const [activeTab, setActiveTab] = useState<'map' | 'party' | 'pc' | 'pokedex' | 'card' | 'save' | 'credits' | 'daycare'>('map');
+  const [showControlsHelp, setShowControlsHelp] = useState(false);
 
   // Start procedural BGM on first user interaction if not muted
   useEffect(() => {
@@ -133,6 +134,16 @@ const Dashboard: React.FC = () => {
             title={mute ? "Unmute Audio" : "Mute Audio"}
           >
             {mute ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+          </button>
+
+          {/* Controls guide toggle */}
+          <button 
+            onClick={() => { sound.playSelect(); setShowControlsHelp(prev => !prev); }}
+            className="p-2 rounded-lg bg-slate-900/60 border border-slate-800 text-gray-400 hover:text-emerald-400 active:scale-95 transition-all flex items-center gap-1.5"
+            title="Keyboard / Gamepad Controls"
+          >
+            <Gamepad2 className="w-4 h-4 text-emerald-400" />
+            <span className="text-[10px] font-mono hidden sm:inline">CONTROLS</span>
           </button>
         </div>
       </header>
@@ -438,6 +449,45 @@ const Dashboard: React.FC = () => {
         />
       )}
       {hatching && <HatchOverlay />}
+      {showControlsHelp && (
+        <div className="fixed inset-0 z-[110] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-gray-900 border border-emerald-500/35 rounded-2xl p-6 shadow-2xl relative flex flex-col gap-4 scanlines">
+            <div className="absolute -top-12 -left-12 w-48 h-48 bg-emerald-500/5 rounded-full filter blur-3xl pointer-events-none" />
+            <h3 className="text-sm font-black tracking-widest text-emerald-400 uppercase flex items-center gap-1.5 border-b border-gray-800 pb-2.5 z-10">
+              <Gamepad2 className="w-4.5 h-4.5 text-emerald-400" />
+              GAME CONTROLS GUIDE
+            </h3>
+            <div className="flex flex-col gap-3 font-mono text-xs text-gray-300 z-10">
+              <div className="flex justify-between border-b border-gray-850/40 pb-1.5">
+                <span className="text-gray-500">MAP MOVEMENT:</span>
+                <span>WASD / Arrow Keys</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-850/40 pb-1.5">
+                <span className="text-gray-500">CONFIRM / SELECT:</span>
+                <span>Enter / Space / E / Z</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-850/40 pb-1.5">
+                <span className="text-gray-500">CANCEL / BACK:</span>
+                <span>Esc / Backspace / Q / X</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-850/40 pb-1.5">
+                <span className="text-gray-500">BIKE TOGGLE:</span>
+                <span>B Key (on Map)</span>
+              </div>
+              <div className="flex justify-between border-b border-gray-850/40 pb-1.5">
+                <span className="text-gray-500">HOTKEYS (BATTLE):</span>
+                <span>1-4 Keys for Move Slots</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowControlsHelp(false)}
+              className="mt-2 w-full py-2.5 bg-emerald-600 border border-emerald-500 hover:bg-emerald-500 text-white font-extrabold text-xs tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95 cursor-pointer z-10"
+            >
+              Close Guide
+            </button>
+          </div>
+        </div>
+      )}
       {/* 6. Virtual Mobile Controller Pad */}
       <VirtualController />
     </div>

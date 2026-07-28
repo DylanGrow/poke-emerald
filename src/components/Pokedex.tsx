@@ -8,6 +8,7 @@ export const Pokedex: React.FC = () => {
   const { pokedexCaught } = useGame();
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState('All');
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Caught' | 'Uncaught'>('All');
   const [selectedPoke, setSelectedPoke] = useState<PokemonData | null>(POKEDEX[0]);
 
   const uniqueTypes = ['All', ...Array.from(new Set(POKEDEX.flatMap(p => p.types)))];
@@ -15,7 +16,12 @@ export const Pokedex: React.FC = () => {
   const filteredPokedex = POKEDEX.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.id.toString() === search;
     const matchesType = selectedType === 'All' || p.types.includes(selectedType);
-    return matchesSearch && matchesType;
+    const isCaught = pokedexCaught.includes(p.id);
+    const matchesStatus =
+      filterStatus === 'All' ||
+      (filterStatus === 'Caught' && isCaught) ||
+      (filterStatus === 'Uncaught' && !isCaught);
+    return matchesSearch && matchesType && matchesStatus;
   });
 
   const getStatPercent = (val: number) => {
@@ -27,7 +33,7 @@ export const Pokedex: React.FC = () => {
     <div className="w-full max-w-4xl mx-auto bg-gray-950/80 border border-emerald-500/30 rounded-2xl p-6 shadow-2xl backdrop-blur-xl relative overflow-hidden flex flex-col gap-6">
       
       {/* Search and Filters bar */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-gray-500" />
@@ -51,6 +57,20 @@ export const Pokedex: React.FC = () => {
             {uniqueTypes.map(t => (
               <option key={t} value={t}>{t} Type</option>
             ))}
+          </select>
+        </div>
+
+        {/* Status Filter */}
+        <div className="relative">
+          <Filter className="absolute left-3.5 top-3 w-4 h-4 text-gray-500" />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/60 border border-gray-800 focus:border-emerald-500/40 focus:outline-none font-mono text-sm appearance-none cursor-pointer"
+          >
+            <option value="All">All Status</option>
+            <option value="Caught">Caught Only</option>
+            <option value="Uncaught">Uncaught Only</option>
           </select>
         </div>
 
@@ -139,7 +159,12 @@ export const Pokedex: React.FC = () => {
 
               {/* Stats list */}
               <div className="w-full flex flex-col gap-2 mt-2">
-                <span className="text-[10px] font-mono text-gray-500 self-start tracking-wider">BASE STATS</span>
+                <div className="flex justify-between items-center w-full">
+                  <span className="text-[10px] font-mono text-gray-500 tracking-wider">BASE STATS</span>
+                  <span className="text-[9px] font-mono text-emerald-400 font-extrabold bg-emerald-950/40 border border-emerald-900/30 px-1.5 py-0.5 rounded">
+                    BST: {Object.values(selectedPoke.baseStats).reduce((a, b) => a + b, 0)}
+                  </span>
+                </div>
                 
                 {Object.entries(selectedPoke.baseStats).map(([key, val]) => (
                   <div key={key} className="flex flex-col gap-1">

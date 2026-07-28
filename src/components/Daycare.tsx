@@ -168,6 +168,19 @@ export const Daycare: React.FC = () => {
                   <span className="text-[10px] font-mono text-gray-500">
                     {25 - daycare.steps} map steps left for Egg
                   </span>
+                  {(() => {
+                    if (!daycare.parentA || !daycare.parentB) return null;
+                    const aData = getPokemonById(daycare.parentA.pokemonId);
+                    const bData = getPokemonById(daycare.parentB.pokemonId);
+                    const shared = aData.types.filter(t => bData.types.includes(t));
+                    if (shared.length > 0) {
+                      return <span className="text-[9px] font-mono text-emerald-400 mt-1.5">They get along incredibly well! (Fast breeding 🥚)</span>;
+                    }
+                    if (aData.color === bData.color) {
+                      return <span className="text-[9px] font-mono text-teal-400 mt-1.5">They seem to share a warm bond. (Medium breeding 🥚)</span>;
+                    }
+                    return <span className="text-[9px] font-mono text-yellow-500/80 mt-1.5">They don't like each other much... (Slow breeding 🥚)</span>;
+                  })()}
                 </div>
               )}
             </div>

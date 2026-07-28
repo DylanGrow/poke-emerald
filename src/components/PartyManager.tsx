@@ -34,7 +34,7 @@ const STATUS_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 export const PartyManager: React.FC = () => {
-  const { team, reorderTeam, bag, useItemOutsideBattle } = useGame();
+  const { team, reorderTeam, bag, useItemOutsideBattle, healTeam } = useGame();
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
   const [swapIndex, setSwapIndex] = useState<number | null>(null);
   const [showItemMenu, setShowItemMenu] = useState(false);
@@ -69,7 +69,7 @@ export const PartyManager: React.FC = () => {
   // Get active items in bag that can be used outside battle
   const usableItems = Object.entries(bag)
     .filter(([name, count]) => count > 0 && (
-      ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy', 'HP Up', 'Protein', 'Iron', 'Calcium', 'Zinc', 'Carbos'].includes(name) ||
+      ['Potion', 'Super Potion', 'Hyper Potion', 'Revive', 'Max Revive', 'Full Heal', 'Rare Candy', 'HP Up', 'Protein', 'Iron', 'Calcium', 'Zinc', 'Carbos', 'Max Elixir'].includes(name) ||
       name.startsWith('TM')
     ))
     .map(([name, count]) => ({ name, count }));
@@ -89,6 +89,12 @@ export const PartyManager: React.FC = () => {
             Manage your team order, inspect stats, or feed Rare Candies.
           </p>
         </div>
+        <button
+          onClick={healTeam}
+          className="px-3 py-1.5 bg-emerald-600/20 border border-emerald-500/30 hover:bg-emerald-500/25 hover:border-emerald-400/50 text-emerald-400 font-extrabold text-[10px] tracking-wider uppercase rounded-xl transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1.5"
+        >
+          🏥 HEAL ALL POKÉMON
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -227,6 +233,16 @@ export const PartyManager: React.FC = () => {
                   <span className="text-[10px] font-mono text-slate-500">
                     {activePoke.isEgg ? 'Egg Class' : `Level ${activePoke.level} ${activeDbInfo.name}`}
                   </span>
+                  {!activePoke.isEgg && (
+                    activeDbInfo.evolutionId && activeDbInfo.evolutionLevel ? (
+                      <span className="text-[9px] font-mono text-emerald-400 mt-0.5">
+                        Evolves into {getPokemonById(activeDbInfo.evolutionId).name} at Lv. {activeDbInfo.evolutionLevel}
+                        {activePoke.level >= activeDbInfo.evolutionLevel ? ' (Ready!)' : ` (${activeDbInfo.evolutionLevel - activePoke.level} Levels left)`}
+                      </span>
+                    ) : (
+                      <span className="text-[9px] font-mono text-gray-500 mt-0.5">Fully Evolved</span>
+                    )
+                  )}
                 </div>
               </div>
 
