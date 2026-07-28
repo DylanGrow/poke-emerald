@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../context/GameContext';
 import { GYMS } from '../db/gyms';
 import { ROUTE_TRAINERS } from '../db/trainers';
-import { Award, DollarSign, Sparkles, UserCheck } from 'lucide-react';
+import { Award, Coins, Sparkles, UserCheck } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
 
 export const TrainerCard: React.FC = () => {
@@ -10,7 +10,8 @@ export const TrainerCard: React.FC = () => {
     badgesDefeated,
     beatenTrainers,
     pokedexCaught,
-    money
+    money,
+    dumpCredits
   } = useGame();
 
   const totalBadgesEarned = badgesDefeated.length;
@@ -73,12 +74,20 @@ export const TrainerCard: React.FC = () => {
 
         <div className="bg-slate-900/60 border border-slate-850 p-4 rounded-xl flex flex-col gap-1">
           <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest flex items-center gap-1">
-            <DollarSign className="w-3.5 h-3.5 text-emerald-300" /> WALLET CASH
+            <Coins className="w-3.5 h-3.5 text-emerald-300" /> WALLET CREDITS
           </span>
           <span className="text-2xl font-black text-emerald-300 font-mono">
-            ${money.toLocaleString()}
+            {money.toLocaleString()}
           </span>
         </div>
+
+        <button
+          onClick={dumpCredits}
+          className="col-span-2 md:col-span-4 bg-emerald-600 hover:bg-emerald-500 border border-emerald-400 text-white font-extrabold text-xs tracking-wider rounded-xl py-3.5 transition-all shadow-md active:scale-95 cursor-pointer mt-1 flex items-center justify-center gap-2"
+        >
+          <Coins className="w-4 h-4" />
+          DUMP CREDITS (+100,000 CREDITS)
+        </button>
       </div>
 
       {/* 30-Badge Interactive Showcase Grid */}

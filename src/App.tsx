@@ -111,9 +111,9 @@ const Dashboard: React.FC = () => {
 
         {/* Global Stats panel */}
         <div className="flex items-center gap-5 font-mono text-xs">
-          <div className="flex items-center gap-1.5 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800" title="Gold Money">
-            <span className="text-amber-400 font-bold">$</span>
-            <span className="text-gray-300 font-bold">{money}</span>
+          <div className="flex items-center gap-1.5 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800" title="Credits Wallet">
+            <span className="text-amber-400 font-bold">🪙</span>
+            <span className="text-gray-300 font-bold">{money.toLocaleString()} <span className="text-[9px] text-gray-500">CR</span></span>
           </div>
 
           <div className="flex items-center gap-1.5 bg-slate-900/40 px-3 py-1.5 rounded-lg border border-slate-800" title="Gym Badges Defeated">

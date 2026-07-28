@@ -135,6 +135,7 @@ interface GameContextType {
   setHatching: (val: { eggId: string; pokemonId: number; name: string } | null) => void;
   finishHatching: (nickname: string) => void;
   useItemOutsideBattle: (itemName: string, teamIndex: number) => void;
+  dumpCredits: () => void;
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -1922,9 +1923,14 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const dumpCredits = () => {
+    sound.playLevelUp();
+    setMoney(prev => prev + 100000);
+  };
+
   return (
     <GameContext.Provider value={{
-      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching, useItemOutsideBattle,
+      team, pcBox, pokedexCaught, badgesDefeated, beatenTrainers, eliteDefeatedCount, money, bag, activeIsland, currentLocation, battle, evolution, setEvolution, mute, saveLoading, saveVerified, pendingMoveLearn, pendingNickname, setPendingNickname, renamePokemon, isBiking, toggleBiking, showEndingCredits, setShowEndingCredits, daycare, depositDaycare, withdrawDaycare, collectEgg, hatching, setHatching, finishHatching, useItemOutsideBattle, dumpCredits,
       startWildBattle, startTrainerBattle, startGymBattle, startEliteBattle, executeTurn, switchPokemon, useItemInBattle, runFromBattle, healTeam, purchaseItem, exportEncryptedSave, importEncryptedSave, toggleMute, travelToIsland, setLocation, learnPendingMove, selectStarter, reorderTeam, swapPokemonWithPc, depositToPc
     }}>
       {children}
