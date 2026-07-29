@@ -4,6 +4,8 @@ import { GYMS } from '../db/gyms';
 import { ROUTE_TRAINERS } from '../db/trainers';
 import { Award, Coins, Sparkles, UserCheck } from 'lucide-react';
 import { BrandLogo } from './BrandLogo';
+import { PokemonSprite } from './PokemonSprite';
+import { getPokemonById } from '../db/pokemon';
 
 export const TrainerCard: React.FC = () => {
   const {
@@ -11,7 +13,8 @@ export const TrainerCard: React.FC = () => {
     beatenTrainers,
     pokedexCaught,
     money,
-    dumpCredits
+    dumpCredits,
+    team
   } = useGame();
 
   const totalBadgesEarned = badgesDefeated.length;
@@ -88,6 +91,51 @@ export const TrainerCard: React.FC = () => {
           <Coins className="w-4 h-4" />
           DUMP CREDITS (+100,000 CREDITS)
         </button>
+      </div>
+
+      {/* Active Team Showcase */}
+      <div className="bg-slate-950/60 border border-slate-850 p-5 rounded-xl flex flex-col gap-3 z-10">
+        <span className="text-xs font-mono font-bold text-gray-300 tracking-wider uppercase border-b border-slate-850 pb-2">
+          ACTIVE CHAMPIONSHIP ROSTER
+        </span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 pt-2">
+          {team.map((poke) => {
+            const spec = getPokemonById(poke.pokemonId);
+            return (
+              <div 
+                key={poke.id} 
+                className="bg-slate-900/60 border border-slate-850 p-3 rounded-xl flex flex-col items-center gap-1.5 hover:border-emerald-500/20 hover:bg-slate-900/90 transition-all group"
+              >
+                <div className="relative">
+                  <PokemonSprite 
+                    pokemonId={poke.pokemonId}
+                    color={spec.color}
+                    secondaryColor={spec.secondaryColor}
+                    shapeSeed={spec.shapeSeed}
+                    bodyType={spec.bodyType}
+                    size={64}
+                    shiny={poke.shiny}
+                  />
+                  {poke.shiny && <span className="absolute -top-1 -right-1 text-xs animate-pulse">✨</span>}
+                </div>
+                <div className="text-center">
+                  <span className="text-xs font-bold text-gray-200 block truncate max-w-[100px]">{poke.nickname}</span>
+                  <span className="text-[9px] font-mono text-emerald-400 font-extrabold uppercase">Lv. {poke.level}</span>
+                </div>
+                <div className="flex gap-1 justify-center flex-wrap">
+                  {spec.types.map(t => (
+                    <span key={t} className="text-[8px] font-mono px-1 py-[0.5px] rounded uppercase bg-slate-950 text-slate-400 border border-slate-800">{t}</span>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          {Array.from({ length: Math.max(0, 6 - team.length) }).map((_, i) => (
+            <div key={i} className="bg-slate-950/20 border border-slate-900 border-dashed p-3 rounded-xl flex flex-col items-center justify-center h-28 text-slate-800 font-mono text-xs">
+              EMPTY
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* 30-Badge Interactive Showcase Grid */}
